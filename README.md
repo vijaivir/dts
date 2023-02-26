@@ -1,6 +1,3 @@
 # Day Trading System (DTS) - Documentation
 
-Navigate to the frontend directory and run 
-```
-npm start
-```
+Run `docker compose up`
