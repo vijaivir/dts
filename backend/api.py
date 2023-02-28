@@ -1,10 +1,14 @@
-from flask import Flask, requests
+from flask import Flask
+import requests
 # import mongodb
 app = Flask(__name__)
 
 @app.route("/quote", methods=["GET"])
 def get_quote():
-    pass
+    quote_price = requests.get('http://fe26-2604-3d08-2679-2000-c58a-51ec-8599-b312.ngrok.io/quote')
+    res = quote_price.json()
+    price = res['price']
+    return price
 
 
 @app.route("/add", methods=["POST"])
@@ -49,4 +53,4 @@ def cancel_sell():
 
 
 if __name__ =="__main__":
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    app.run(host="0.0.0.0", port=5001, debug=True)
