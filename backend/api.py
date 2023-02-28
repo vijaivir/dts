@@ -1,5 +1,12 @@
-from flask import Flask, requests
-# import mongodb
+from flask import Flask, request
+from pymongo import MongoClient
+
+client = MongoClient()
+db = client.user_database
+collection = db.user_table
+
+
+
 app = Flask(__name__)
 
 @app.route("/quote", methods=["GET"])
