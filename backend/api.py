@@ -129,16 +129,17 @@ def commit_buy():
         valid_buy = list(valid_buy)[0]
         buy_price = valid_buy["price"][0]["price"]
         stock_bought = valid_buy["price"][0]["sym"]
-
+        print("STOCK BOUGHT", stock_bought)
         balance = collection.find_one({"username":data["username"]})["funds"]
-        update_funds = {"$set": {"funds": float(balance) - buy_price},
-                        "$push": {"stocks":stock_bought},               
+        update_funds = {"$set": {"funds": float(balance) - buy_price},             
                         "$push": {"transactions": {
                             "timestamp":timestamp,
                             "server":"TS1",
                             "transactionNum":data['trxNum'],
                             "command":data['cmd']
-                        }}}
+                        }, 
+                        "stocks": {"sym":stock_bought}},
+                        }
         collection.update_one({"username":data["username"]}, update_funds)
 
         return "Successfly bought stock"
