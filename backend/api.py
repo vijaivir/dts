@@ -62,8 +62,6 @@ def display_summary():
 @app.route("/buy", methods=["POST"])
 def buy():
     data = request.json
-
-    username = request.json
     filter = {"username":data['username']}
 
     new_buy = {"$push": { "transactions": {
@@ -76,7 +74,7 @@ def buy():
             }
         }
     }
-
+    # update the array of transactions to include a buy
     collection.update_one(filter, new_buy)
     for d in collection.find():
         print(d)
@@ -85,6 +83,8 @@ def buy():
 
 @app.route("/commit_buy", methods=["POST"])
 def commit_buy():
+
+
     pass
 
 
