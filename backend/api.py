@@ -1,5 +1,6 @@
 from flask import Flask, request
 from pymongo import MongoClient
+import time
 import requests
 
 client = MongoClient()
@@ -19,7 +20,17 @@ def get_quote():
 @app.route("/add", methods=["POST"])
 def add():
     data = request.json
-    print(data)
+
+    collection.insert_one({
+        "timestamp":time.time(),
+        "server":"TS1",
+        "transactionNum":data['trxNum'],
+        "command":data['cmd'],
+        "username":data['username'],
+        "funds":data['amount']
+    })
+    for d in collection.find():
+        print(d)
     return data
 
 

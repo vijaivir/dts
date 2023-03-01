@@ -1,7 +1,7 @@
 import requests
 import sys
 
-apiUrl = "http://localhost:5001";
+apiUrl = "http://localhost:5001"
 
 
 def createCommand(line, count):
