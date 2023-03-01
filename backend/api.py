@@ -1,4 +1,4 @@
-from flask import Flask
+from flask import Flask, request
 from pymongo import MongoClient
 import requests
 
@@ -18,7 +18,9 @@ def get_quote():
 
 @app.route("/add", methods=["POST"])
 def add():
-    pass
+    data = request.json
+    print(data)
+    return data
 
 
 @app.route("/display_summary", methods=["GET"])
