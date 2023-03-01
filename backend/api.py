@@ -61,7 +61,26 @@ def display_summary():
 
 @app.route("/buy", methods=["POST"])
 def buy():
-    pass
+    data = request.json
+
+    username = request.json
+    filter = {"username":data['username']}
+
+    new_buy = {"$push": { "transactions": {
+            "timestamp":time.time(),
+            "server":"TS1",
+            "transactionNum":data['trxNum'],
+            "command":data['cmd'],
+            "sym": data['sym'],
+            "price": data['price']  
+            }
+        }
+    }
+
+    collection.update_one(filter, new_buy)
+    for d in collection.find():
+        print(d)
+    return data
 
 
 @app.route("/commit_buy", methods=["POST"])
