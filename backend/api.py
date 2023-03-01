@@ -8,7 +8,7 @@ collection = db.user_table
 
 app = Flask(__name__)
 
-@app.route("/quote", methods=["GET"])
+@app.route("/quote", methods=["POST"])
 def get_quote():
     quote_price = requests.get('http://fe26-2604-3d08-2679-2000-c58a-51ec-8599-b312.ngrok.io/quote')
     res = quote_price.json()
@@ -23,7 +23,7 @@ def add():
     return data
 
 
-@app.route("/display_summary", methods=["GET"])
+@app.route("/display_summary", methods=["POST"])
 def display_summary():
     pass
 
