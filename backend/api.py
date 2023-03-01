@@ -50,10 +50,6 @@ def add():
                         }}}
         collection.update_one(filter, update)
 
-    # for d in collection.find():
-    #     print(d)
-    # return data
-
 
 
 @app.route("/display_summary", methods=["POST"])
