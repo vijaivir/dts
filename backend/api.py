@@ -19,16 +19,36 @@ def get_quote():
 
 @app.route("/add", methods=["POST"])
 def add():
+    # recive data from API
     data = request.json
+    filter = {"username":data['username']}
+    # if user not in collection, create new user
+    if not collection.find_one(filter):
+        collection.insert_one({
+            "username":data['username'],
+            "funds":data['amount'],
+            "stocks":[],
+            "transactions":[
+                {
+                    "timestamp":time.time(),
+                    "server":"TS1",
+                    "transactionNum":data['trxNum'],
+                    "command":data['cmd']
+                }
+            ]
+        })
+    # else, update existing user
+    else:
+        balance = collection.find_one(filter)["funds"]
+        update_funds = {"$set": {"funds": float(balance) + float(data['amount'])},
+                        "$push": {"transactions": {
+                            "timestamp":time.time(),
+                            "server":"TS1",
+                            "transactionNum":data['trxNum'],
+                            "command":data['cmd']
+                        }}}
+        collection.update_one(filter, update_funds)
 
-    collection.insert_one({
-        "timestamp":time.time(),
-        "server":"TS1",
-        "transactionNum":data['trxNum'],
-        "command":data['cmd'],
-        "username":data['username'],
-        "funds":data['amount']
-    })
     for d in collection.find():
         print(d)
     return data

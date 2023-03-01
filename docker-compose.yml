@@ -1,7 +1,7 @@
 services:
-  frontend:
+  database:
     build:
-      context: ./frontend
-    container_name: frontend
+      context: ./mongodb
+    container_name: mongo_database
     ports:
-      - "3000:3000"
+      - "27017:27017"
