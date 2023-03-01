@@ -1,7 +1,7 @@
 import requests
 import sys
 
-apiUrl = "http://134.87.32.119:5001";
+apiUrl = "http://localhost:5001";
 
 
 def createCommand(line):
@@ -9,46 +9,46 @@ def createCommand(line):
     cmd = c[0].split(" ")[1]
     
     if(cmd == "QUOTE"):
-        requests.get(apiUrl + "/quote")
+        requests.post(apiUrl + "/quote")
 
     elif(cmd == "ADD"):
-        requests.post()
+        requests.post(apiUrl + "/add", json={'cmd':cmd, 'username':c[1], 'amount':c[2]})
 
     elif(cmd == "DISPLAY_SUMMARY"):
-        print(cmd)
+        requests.post(apiUrl + "/display_summary")
 
     elif(cmd == "BUY"):
-        print(cmd)
-
+        requests.post(apiUrl + "/buy", json={'cmd':cmd, 'username':c[1], 'sym':c[2] , 'amount':c[3]})
+        
     elif(cmd == "COMMIT_BUY"):
-        print(cmd)
+        requests.post(apiUrl + "/commit_buy", json={'cmd':cmd, 'username':c[1]})
 
     elif(cmd == "SET_BUY_TRIGGER"):
-        print(cmd)
+        requests.post(apiUrl + "/set_buy_trigger", json={'cmd':cmd, 'username':c[1], 'sym':c[2], 'amount':c[3]})
 
     elif(cmd == "CANCEL_BUY"):
-        print(cmd)
+        requests.post(apiUrl + "/cancel_buy", json={'cmd':cmd, 'username':c[1]})
 
     elif(cmd == "CANCEL_SET_BUY"):
-        print(cmd)
+        requests.post(apiUrl + "/cancel_set_buy", json={'cmd':cmd, 'username':c[1], 'sym':c[2]})
     
     elif(cmd == "SELL"):
-        print(cmd)
+        requests.post(apiUrl + "/sell", json={'cmd':cmd, 'username':c[1], 'sym':c[2], 'amount':c[3]})
 
     elif(cmd == "COMMIT_SELL"):
-        print(cmd)
+        requests.post(apiUrl + "/commit_sell", json={'cmd':cmd, 'username':c[1]})
 
     elif(cmd == "SET_SELL_TRIGGER"):
-        print(cmd)
+        requests.post(apiUrl + "/set_sell_trigger", json={'cmd':cmd, 'username':c[1], 'sym':c[2], 'amount':c[3]})
 
     elif(cmd == "CANCEL_SELL"):
-        print(cmd)
+        requests.post(apiUrl + "/cancel_sell", json={'cmd':cmd, 'username':c[1]})
 
     elif(cmd == "CANCEL_SET_SELL"):
-        print(cmd)
+        requests.post(apiUrl + "/cancel_set_sell", json={'cmd':cmd, 'username':c[1], 'sym':c[2]})
 
     elif(cmd == "DUMPLOG"):
-        print(cmd)
+        requests.post(apiUrl + "/dumplog", json={'fileName':c[1]})
 
 
 def readInputFile(fileName):
