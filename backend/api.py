@@ -193,16 +193,6 @@ def sell():
 
 @app.route("/commit_sell", methods=["POST"])
 def commit_sell():
-    collection.insert_one({
-        "username":"test",
-        "funds":"5000.0",
-        "stocks":[{"sym":"AP", "amount":"10000.0"}, {"sym":"GO", "amount":"2000"}],
-        "transactions":[
-            {"timestamp":time.time(), "command":"SELL", "stockSymbol":"AP", "amount":"500"},
-            {"timestamp":time.time(), "command":"BUY", "stockSymbol":"AP", "amount":"500"},
-            {"timestamp":time.time(), "command":"ADD", "amount":"1000"}
-        ]
-    })
     # check if a SELL command was executed in the last 60 seconds
     data = request.json
     timestamp = time.time()
@@ -248,12 +238,12 @@ def commit_sell():
     if len(valid_sell) > 0:
         stock = valid_sell[0]['transaction'][0]['stockSymbol']
         sell_price = valid_sell[0]["transaction"][0]["amount"]
-        filter = {"username": data['username']}
+        user_filter = {"username": data['username']}
         stock_filter = {"username": data['username'], "stocks.sym": stock}
-        balance = collection.find_one(filter)['funds']
+        balance = collection.find_one(user_filter)['funds']
         amount_owned = collection.find_one(stock_filter, {"stocks.$": 1})['stocks'][0]['amount']
         update_funds = {"$set": {"funds": float(sell_price) + float(balance)}}
-        collection.update_one(filter, update_funds)
+        collection.update_one(user_filter, update_funds)
         new_price = float(amount_owned) - float(sell_price)
         update_stock = {"$set": {"stocks.$.amount": new_price}}
         collection.update_one(stock_filter, update_stock)
@@ -264,7 +254,7 @@ def commit_sell():
             "command":data['cmd'],
             }}
         }
-        collection.update_one(filter, update_transaction)
+        collection.update_one(user_filter, update_transaction)
         for d in collection.find():
             print(d)
         return "Successfly sold stock!"
@@ -277,17 +267,79 @@ def commit_sell():
             "command":data['cmd'],
             }}
         }
-        collection.update_one(filter, update_transaction)
+        collection.update_one(user_filter, update_transaction)
         return "No valid Sells"
 
 
 @app.route("/cancel_sell", methods=["POST"])
 def cancel_sell():
+    collection.insert_one({
+        "username":"test",
+        "funds":"5000.0",
+        "stocks":[{"sym":"AP", "amount":"10000.0"}, {"sym":"GO", "amount":"2000"}],
+        "transactions":[
+            {"timestamp":time.time(), "command":"SELL", "stockSymbol":"AP", "amount":"500"},
+            {"timestamp":time.time(), "command":"BUY", "stockSymbol":"AP", "amount":"500"},
+            {"timestamp":time.time(), "command":"ADD", "amount":"1000"}
+        ]
+    })
     # check if a SELL command was executed in the last 60 seconds
+    data = request.json
+    timestamp = time.time()
+    greater_than_time = timestamp - 60
+    user_filter = {"username": data['username']}
 
-    # if yes, cancel the transaction (remove pending flag)
-    # dont remove from stocks[]  
-    pass
+    # filter to get only commands of type SELL in the correct time
+    filter = {
+        "username": data["username"],
+        "transactions": {
+            "$elemMatch": {
+            "command": "SELL",
+            "timestamp": {
+                "$gte": greater_than_time
+                }
+            }
+        }
+    }
+
+    # create the projection
+    fields = {
+        "_id": 0,
+        "transaction": {
+            "$filter": {
+            "input": "$transactions",
+            "as":"transaction",
+            "cond": {
+                "$and": [
+                { "$eq": [ "$$transaction.command", "SELL" ] },
+                { "$gte": [ "$$transaction.timestamp", greater_than_time ] }
+                ]
+            }
+            }
+        }
+    }
+    #sell_transactions = collection.find_one(filter)
+    # perform the aggregation pipeline to match and extract the desired fields
+    valid_sell = list(collection.aggregate([
+            { "$match": filter },
+            { "$project": fields }
+        ]
+    ))
+
+    if len(valid_sell) > 0:
+        update_transaction = {"$push": { "transactions": {
+            "timestamp":timestamp,
+            "server":"TS1",
+            "transactionNum":data['trxNum'],
+            "command":data['cmd'],
+            }}
+        }
+        collection.update_one(user_filter, update_transaction)
+        for d in collection.find():
+            print(d)
+        return "Transaction has been cancelled"
+    else:
+        return "No recent sell transactions"
 
 
 @app.route("/clear", methods=["GET"])
