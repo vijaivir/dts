@@ -64,7 +64,6 @@ def add():
             "stocks":[],
             "transactions":[tx]
         })
-        transaction_table.insert_one(tx)
         return "created account"
     # else, update existing user
     else:
@@ -72,9 +71,6 @@ def add():
         update = {"$set": {"funds": float(balance) + float(data['amount'])},
                   "$push": {"transactions": tx}}
         user_table.update_one(filter, update)
-        transaction_table.insert_one(tx)
-    for x in user_table.find():
-        print(x)
     return "updated account"
 
 
@@ -83,9 +79,12 @@ def display_summary():
     pass
 
 
+# TODO add error checking if account does not exist or insufficient funds
 @app.route("/buy", methods=["POST"])
 def buy():
     data = request.json
+    if not account_exists(data['username']):
+        new_transaction(data, error="The specified user does not exist.")
     filter = {"username":data['username']}
     tx = new_transaction(data)
     new_tx = {"$push": { "transactions": tx}}
@@ -95,6 +94,7 @@ def buy():
     return "Added to transactions. 60 seconds to COMMIT"
 
 
+# TODO add error checking
 @app.route("/commit_buy", methods=["POST"])
 def commit_buy():
     data = request.json
@@ -173,6 +173,7 @@ def commit_buy():
     return "No valid buys"
 
 
+# TODO
 @app.route("/cancel_buy", methods=["POST"])
 def cancel_buy():
     # check if a BUY command was executed in the last 60 seconds
@@ -182,10 +183,31 @@ def cancel_buy():
     pass
 
 
+# TODO
+@app.route("/set_buy_amount", methods=["POST"])
+def set_buy_amount():
+    pass
+
+
+# TODO
+@app.route("/set_buy_trigger", methods=["POST"])
+def set_buy_trigger():
+    pass
+
+
+# TODO
+@app.route("/cancel_set_buy", methods=["POST"])
+def cancel_set_buy():
+    pass
+
+
 @app.route("/sell", methods=["POST"])
 def sell():
     # check if owned stock is >= amount being sold
     data = request.json
+    if not account_exists(data['username']):
+        new_transaction(data, error="The specified user does not exist.")
+
     filter = {"username":data['username']}
     user_stocks = user_table.find_one(filter)['stocks']
     valid_transaction = False
@@ -345,12 +367,27 @@ def cancel_sell():
             }}
         }
         user_table.update_one(user_filter, update_transaction)
-        for d in user_table.find():
-            print(d)
         return "Transaction has been cancelled"
     else:
         return "No recent sell transactions"
 
+
+# TODO
+@app.route("/set_sell_amount", methods=["POST"])
+def set_sell_amount():
+    pass
+
+
+# TODO
+@app.route("/set_sell_trigger", methods=["POST"])
+def set_sell_trigger():
+    pass
+
+
+# TODO
+@app.route("/cancel_set_sell", methods=["POST"])
+def cancel_set_sell():
+    pass
 
 @app.route("/dumplog", methods=["POST"])
 def dumplog():
@@ -397,9 +434,10 @@ def account_exists(username):
         return True
     return False
 
+
 def new_transaction(data, **atr):
     cmd = data['cmd']
-    trx = {
+    tx = {
         "type":"accountTransaction",
         "timestamp":time.time(),
         "server":"TS1",
@@ -409,11 +447,11 @@ def new_transaction(data, **atr):
         "amount":data['amount']
     }
     if cmd == "BUY" or cmd == "SELL":
-        trx["sym"] = data['sym']
-        trx["flag"] = "pending"
+        tx["sym"] = data['sym']
+        tx["flag"] = "pending"
     
     if cmd in ["COMMIT_BUY", "COMMIT_SELL", "CANCEL_BUY", "CANCEL_SELL"]:
-        trx = {
+        tx = {
             "type":"accountTransaction",
             "timestamp":time.time(),
             "server":"TS1",
@@ -423,7 +461,7 @@ def new_transaction(data, **atr):
         }
     
     if "error" in atr:
-        trx = {
+        tx = {
             "type":"errorEvent",
             "timestamp":time.time(),
             "server":"TS1",
@@ -432,8 +470,8 @@ def new_transaction(data, **atr):
             "username": data['username'],
             "errorMessage":atr['error']
         }
-    
-    return trx
+    transaction_table.insert_one(tx)
+    return tx
 
 
 if __name__ =="__main__":

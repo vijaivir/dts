@@ -11,14 +11,12 @@ def createCommand(line, count):
 
     print(cmd, trxNum)
     
+    # TODO need a separate quote server count
     if(cmd == "QUOTE"):
-        requests.post(apiUrl + "/quote")
+        requests.post(apiUrl + "/quote", json={'cmd':cmd, 'username':c[1], 'sym':c[2]})
 
     elif(cmd == "ADD"):
         requests.post(apiUrl + "/add", json={'cmd':cmd, 'username':c[1], 'amount':c[2], 'trxNum':trxNum})
-
-    elif(cmd == "DISPLAY_SUMMARY"):
-        requests.post(apiUrl + "/display_summary", json={'trxNum':trxNum})
 
     elif(cmd == "BUY"):
         requests.post(apiUrl + "/buy", json={'cmd':cmd, 'username':c[1], 'sym':c[2] , 'amount':c[3], 'trxNum':trxNum})
@@ -28,6 +26,9 @@ def createCommand(line, count):
 
     elif(cmd == "SET_BUY_TRIGGER"):
         requests.post(apiUrl + "/set_buy_trigger", json={'cmd':cmd, 'username':c[1], 'sym':c[2], 'amount':c[3], 'trxNum':trxNum})
+
+    elif(cmd == "SET_BUY_AMOUNT"):
+        requests.post(apiUrl + "/set_buy_amount", json={'cmd':cmd, 'username':c[1], 'sym':c[2], 'amount':c[3], 'trxNum':trxNum})
 
     elif(cmd == "CANCEL_BUY"):
         requests.post(apiUrl + "/cancel_buy", json={'cmd':cmd, 'username':c[1], 'trxNum':trxNum})
@@ -44,14 +45,21 @@ def createCommand(line, count):
     elif(cmd == "SET_SELL_TRIGGER"):
         requests.post(apiUrl + "/set_sell_trigger", json={'cmd':cmd, 'username':c[1], 'sym':c[2], 'amount':c[3], 'trxNum':trxNum})
 
+    elif(cmd == "SET_SELL_AMOUNT"):
+        requests.post(apiUrl + "/set_sell_amount", json={'cmd':cmd, 'username':c[1], 'sym':c[2], 'amount':c[3], 'trxNum':trxNum})
+
     elif(cmd == "CANCEL_SELL"):
         requests.post(apiUrl + "/cancel_sell", json={'cmd':cmd, 'username':c[1], 'trxNum':trxNum})
 
     elif(cmd == "CANCEL_SET_SELL"):
         requests.post(apiUrl + "/cancel_set_sell", json={'cmd':cmd, 'username':c[1], 'sym':c[2], 'trxNum':trxNum})
 
+    #TODO need another dumplog that works without filename
     elif(cmd == "DUMPLOG"):
         requests.post(apiUrl + "/dumplog", json={'fileName':c[1], 'username':c[2], 'trxNum':trxNum})
+
+    elif(cmd == "DISPLAY_SUMMARY"):
+        requests.post(apiUrl + "/display_summary", json={'trxNum':trxNum})
 
 
 def readInputFile(fileName):
