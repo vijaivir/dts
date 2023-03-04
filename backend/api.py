@@ -1,5 +1,6 @@
 from flask import Flask, request
 from pymongo import MongoClient
+import xml.etree.ElementTree as ET
 import time
 import requests
 
@@ -273,16 +274,16 @@ def commit_sell():
 
 @app.route("/cancel_sell", methods=["POST"])
 def cancel_sell():
-    collection.insert_one({
-        "username":"test",
-        "funds":"5000.0",
-        "stocks":[{"sym":"AP", "amount":"10000.0"}, {"sym":"GO", "amount":"2000"}],
-        "transactions":[
-            {"timestamp":time.time(), "command":"SELL", "stockSymbol":"AP", "amount":"500"},
-            {"timestamp":time.time(), "command":"BUY", "stockSymbol":"AP", "amount":"500"},
-            {"timestamp":time.time(), "command":"ADD", "amount":"1000"}
-        ]
-    })
+    # collection.insert_one({
+    #     "username":"test",
+    #     "funds":"5000.0",
+    #     "stocks":[{"sym":"AP", "amount":"10000.0"}, {"sym":"GO", "amount":"2000"}],
+    #     "transactions":[
+    #         {"timestamp":time.time(), "command":"SELL", "stockSymbol":"AP", "amount":"500"},
+    #         {"timestamp":time.time(), "command":"BUY", "stockSymbol":"AP", "amount":"500"},
+    #         {"timestamp":time.time(), "command":"ADD", "amount":"1000"}
+    #     ]
+    # })
     # check if a SELL command was executed in the last 60 seconds
     data = request.json
     timestamp = time.time()
@@ -341,6 +342,40 @@ def cancel_sell():
     else:
         return "No recent sell transactions"
 
+
+@app.route("/dumplog", methods=["POST"])
+def dumplog():
+    collection.insert_one({
+        "username":"test",
+        "funds":"5000.0",
+        "stocks":[{"sym":"AP", "amount":"10000.0"}, {"sym":"GO", "amount":"2000"}],
+        "transactions":[
+            {"type":"userCommand", "timestamp":time.time(), "command":"SELL", "stockSymbol":"AP", "amount":"500"},
+            {"type":"systemEvent", "timestamp":time.time(), "command":"BUY", "stockSymbol":"AP", "amount":"500"}
+        ]
+    })
+    data = request.json
+    filter = {"username":data['username']}
+    user_transactions = collection.find_one(filter)['transactions']
+    root = ET.Element("log")
+    for t in user_transactions:
+        # transaction_type = ET.SubElement(root, t["type"])
+        # transaction_element = ET.SubElement(transaction_type, )
+
+
+        # transaction_element.set("timestamp", str(t["timestamp"]))
+        # transaction_element.set("command", t["command"])
+        # transaction_element.set("stockSymbol", str(t["stockSymbol"]))
+        # transaction_element.set("amount", t["amount"])
+        transaction = ET.SubElement(root, "userCommand")
+        
+        # Add the transaction attributes
+        ET.SubElement(transaction, "timestamp").text = str((t["timestamp"]))
+        ET.SubElement(transaction, "command").text = t["command"]
+        ET.SubElement(transaction, "username").text = data["username"]
+        ET.SubElement(transaction, "amount").text = t["amount"]
+
+    return ET.tostring(root)
 
 @app.route("/clear", methods=["GET"])
 def clear():
