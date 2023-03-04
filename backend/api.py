@@ -10,13 +10,40 @@ collection = db.user_table
 
 app = Flask(__name__)
 
+"""
+Database Structure:
+{
+    "username":"",
+    "funds":"",
+    "reserve":"",
+    "stocks":[
+        {
+            "sym":"",
+            "amount":""
+        }
+    ],
+    "transactions":[
+        {
+            "timestamp":"",
+            "server":"", (TS1 or QS1)
+            "transactionNum":"",
+            "command":"",
+            "username":"",
+            "sym":"", (does not apply to ADD, DISPLAY_SUMMARY)
+            "amount":"", (could mean "funds" or "price". name it "amount" for simplicity)
+            "cryptokey":"", (only for QUOTE)
+            "errorMessage":"" (only for erroneous transactions)
+        }
+    ]
+}
+"""
+
 @app.route("/quote", methods=["POST"])
 def get_quote():
     quote_price = requests.get('http://fe26-2604-3d08-2679-2000-c58a-51ec-8599-b312.ngrok.io/quote')
     res = quote_price.json()
     price = res['price']
     return price
-
 
 
 @app.route("/add", methods=["POST"])
@@ -50,7 +77,6 @@ def add():
                             "command":data['cmd']
                         }}}
         collection.update_one(filter, update)
-
 
 
 @app.route("/display_summary", methods=["POST"])
@@ -156,7 +182,6 @@ def commit_buy():
     collection.update_one({"username":data["username"]}, new_tx)
     
     return "No valid buys"
-
 
 
 @app.route("/cancel_buy", methods=["POST"])
@@ -370,11 +395,24 @@ def dumplog():
 
     return ET.tostring(root)
 
+
 @app.route("/clear", methods=["GET"])
 def clear():
     collection.delete_many({})
 
     return "cleared DB"
+
+
+'''
+Helper function to check if a user exists or not.
+Parameters: username (str)
+'''
+def account_exists(username):
+    query = {"username":username}
+    if collection.find_one(query):
+        return True
+    return False
+
 
 if __name__ =="__main__":
     app.run(host="0.0.0.0", port=5001, debug=True)
