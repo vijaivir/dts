@@ -6,7 +6,9 @@ import requests
 
 client = MongoClient()
 db = client.user_database
-collection = db.user_table
+# Creates two collections (user_table, transaction_table)
+user_table = db.user_table
+transaction_table = db.transaction_table
 
 app = Flask(__name__)
 
@@ -51,9 +53,10 @@ def add():
     # recive data from API
     data = request.json
     filter = {"username":data['username']}
-    # if user not in collection, create new user
-    if not collection.find_one(filter):
-        collection.insert_one({
+    # if user not in user_table, create new user
+    
+    if not user_table.find_one(filter):
+        user_table.insert_one({
             "username":data['username'],
             "funds":data['amount'],
             "stocks":[],
@@ -68,7 +71,7 @@ def add():
         })
     # else, update existing user
     else:
-        balance = collection.find_one(filter)["funds"]
+        balance = user_table.find_one(filter)["funds"]
         update = {"$set": {"funds": float(balance) + float(data['amount'])},
                   "$push": {"transactions": {
                             "timestamp":time.time(),
@@ -76,7 +79,10 @@ def add():
                             "transactionNum":data['trxNum'],
                             "command":data['cmd']
                         }}}
-        collection.update_one(filter, update)
+        user_table.update_one(filter, update)
+    for x in user_table.find():
+        print(x)
+    return "created account"
 
 
 @app.route("/display_summary", methods=["POST"])
@@ -100,8 +106,8 @@ def buy():
         }
     }
     # update the array of transactions to include a buy
-    collection.update_one(filter, new_tx)
-    for d in collection.find():
+    user_table.update_one(filter, new_tx)
+    for d in user_table.find():
         print(d)
     return data
 
@@ -143,7 +149,7 @@ def commit_buy():
     }
 
     # perform the aggregation pipeline to match and extract the desired fields
-    valid_buy = list(collection.aggregate([
+    valid_buy = list(user_table.aggregate([
             { "$match": filter },
             { "$project": fields }
         ]
@@ -155,7 +161,7 @@ def commit_buy():
         buy_price = valid_buy["price"][0]["price"]
         stock_bought = valid_buy["price"][0]["sym"]
         print("STOCK BOUGHT", stock_bought)
-        balance = collection.find_one({"username":data["username"]})["funds"]
+        balance = user_table.find_one({"username":data["username"]})["funds"]
         update_funds = {"$set": {"funds": float(balance) - buy_price},             
                         "$push": {"transactions": {
                             "timestamp":timestamp,
@@ -165,7 +171,7 @@ def commit_buy():
                         }, 
                         "stocks": {"sym":stock_bought}},
                         }
-        collection.update_one({"username":data["username"]}, update_funds)
+        user_table.update_one({"username":data["username"]}, update_funds)
 
         return "Successfly bought stock"
 
@@ -179,7 +185,7 @@ def commit_buy():
         }
     }
 
-    collection.update_one({"username":data["username"]}, new_tx)
+    user_table.update_one({"username":data["username"]}, new_tx)
     
     return "No valid buys"
 
@@ -198,7 +204,7 @@ def sell():
     # check if owned stock is >= amount being sold
     data = request.json
     filter = {"username":data['username']}
-    user_stocks = collection.find_one(filter)['stocks']
+    user_stocks = user_table.find_one(filter)['stocks']
     valid_transaction = False
     for x in user_stocks:
         if (x['stockSymbol'] == data['sym']) and (float(x['amount']) > float(data['amount'])):
@@ -213,7 +219,7 @@ def sell():
             "stockSymbol":data['sym'],
             "amount":data['amount']
         }}}
-        collection.update_one(filter, update)    
+        user_table.update_one(filter, update)    
     return 'Added to transactions'
 
 
@@ -253,9 +259,9 @@ def commit_sell():
             }
         }
     }
-    #sell_transactions = collection.find_one(filter)
+    #sell_transactions = user_table.find_one(filter)
     # perform the aggregation pipeline to match and extract the desired fields
-    valid_sell = list(collection.aggregate([
+    valid_sell = list(user_table.aggregate([
             { "$match": filter },
             { "$project": fields }
         ]
@@ -266,13 +272,13 @@ def commit_sell():
         sell_price = valid_sell[0]["transaction"][0]["amount"]
         user_filter = {"username": data['username']}
         stock_filter = {"username": data['username'], "stocks.sym": stock}
-        balance = collection.find_one(user_filter)['funds']
-        amount_owned = collection.find_one(stock_filter, {"stocks.$": 1})['stocks'][0]['amount']
+        balance = user_table.find_one(user_filter)['funds']
+        amount_owned = user_table.find_one(stock_filter, {"stocks.$": 1})['stocks'][0]['amount']
         update_funds = {"$set": {"funds": float(sell_price) + float(balance)}}
-        collection.update_one(user_filter, update_funds)
+        user_table.update_one(user_filter, update_funds)
         new_price = float(amount_owned) - float(sell_price)
         update_stock = {"$set": {"stocks.$.amount": new_price}}
-        collection.update_one(stock_filter, update_stock)
+        user_table.update_one(stock_filter, update_stock)
         update_transaction = {"$push": { "transactions": {
             "timestamp":timestamp,
             "server":"TS1",
@@ -280,8 +286,8 @@ def commit_sell():
             "command":data['cmd'],
             }}
         }
-        collection.update_one(user_filter, update_transaction)
-        for d in collection.find():
+        user_table.update_one(user_filter, update_transaction)
+        for d in user_table.find():
             print(d)
         return "Successfly sold stock!"
     else:
@@ -293,13 +299,13 @@ def commit_sell():
             "command":data['cmd'],
             }}
         }
-        collection.update_one(user_filter, update_transaction)
+        user_table.update_one(user_filter, update_transaction)
         return "No valid Sells"
 
 
 @app.route("/cancel_sell", methods=["POST"])
 def cancel_sell():
-    # collection.insert_one({
+    # user_table.insert_one({
     #     "username":"test",
     #     "funds":"5000.0",
     #     "stocks":[{"sym":"AP", "amount":"10000.0"}, {"sym":"GO", "amount":"2000"}],
@@ -344,9 +350,9 @@ def cancel_sell():
             }
         }
     }
-    #sell_transactions = collection.find_one(filter)
+    #sell_transactions = user_table.find_one(filter)
     # perform the aggregation pipeline to match and extract the desired fields
-    valid_sell = list(collection.aggregate([
+    valid_sell = list(user_table.aggregate([
             { "$match": filter },
             { "$project": fields }
         ]
@@ -360,8 +366,8 @@ def cancel_sell():
             "command":data['cmd'],
             }}
         }
-        collection.update_one(user_filter, update_transaction)
-        for d in collection.find():
+        user_table.update_one(user_filter, update_transaction)
+        for d in user_table.find():
             print(d)
         return "Transaction has been cancelled"
     else:
@@ -370,7 +376,7 @@ def cancel_sell():
 
 @app.route("/dumplog", methods=["POST"])
 def dumplog():
-    # collection.insert_one({
+    # user_table.insert_one({
     #     "username":"test",
     #     "funds":"5000.0",
     #     "stocks":[{"sym":"AP", "amount":"10000.0"}, {"sym":"GO", "amount":"2000"}],
@@ -381,7 +387,7 @@ def dumplog():
     # })
     data = request.json
     filter = {"username":data['username']}
-    user_transactions = collection.find_one(filter)['transactions']
+    user_transactions = user_table.find_one(filter)['transactions']
     root = ET.Element("log")
     for t in user_transactions:
         transaction = ET.SubElement(root, "userCommand")
@@ -398,7 +404,7 @@ def dumplog():
 
 @app.route("/clear", methods=["GET"])
 def clear():
-    collection.delete_many({})
+    user_table.delete_many({})
 
     return "cleared DB"
 
@@ -409,7 +415,7 @@ Parameters: username (str)
 '''
 def account_exists(username):
     query = {"username":username}
-    if collection.find_one(query):
+    if user_table.find_one(query):
         return True
     return False
 
