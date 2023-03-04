@@ -397,7 +397,7 @@ def account_exists(username):
         return True
     return False
 
-def new_transaction(data):
+def new_transaction(data, **atr):
     cmd = data['cmd']
     trx = {
         "type":"accountTransaction",
@@ -411,6 +411,27 @@ def new_transaction(data):
     if cmd == "BUY" or cmd == "SELL":
         trx["sym"] = data['sym']
         trx["flag"] = "pending"
+    
+    if cmd in ["COMMIT_BUY", "COMMIT_SELL", "CANCEL_BUY", "CANCEL_SELL"]:
+        trx = {
+            "type":"accountTransaction",
+            "timestamp":time.time(),
+            "server":"TS1",
+            "transactionNum":data['trxNum'],
+            "command":cmd,
+            "username": data['username']
+        }
+    
+    if "error" in atr:
+        trx = {
+            "type":"errorEvent",
+            "timestamp":time.time(),
+            "server":"TS1",
+            "transactionNum":data['trxNum'],
+            "command":cmd,
+            "username": data['username'],
+            "errorMessage":atr['error']
+        }
     
     return trx
 
