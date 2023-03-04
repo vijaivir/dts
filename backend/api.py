@@ -6,7 +6,7 @@ import requests
 
 client = MongoClient()
 db = client.user_database
-# Creates two collections (user_table, transaction_table)
+# Create two collections (user_table, transaction_table)
 user_table = db.user_table
 transaction_table = db.transaction_table
 
@@ -26,12 +26,14 @@ Database Structure:
     ],
     "transactions":[
         {
+            "type":"",
             "timestamp":"",
             "server":"", (TS1 or QS1)
             "transactionNum":"",
             "command":"",
+            "flag":"",
             "username":"",
-            "sym":"", (does not apply to ADD, DISPLAY_SUMMARY)
+            "sym":"", (does not apply to ADD)
             "amount":"", (could mean "funds" or "price". name it "amount" for simplicity)
             "cryptokey":"", (only for QUOTE)
             "errorMessage":"" (only for erroneous transactions)
@@ -53,36 +55,27 @@ def add():
     # recive data from API
     data = request.json
     filter = {"username":data['username']}
+    tx = new_transaction(data)
     # if user not in user_table, create new user
-    
-    if not user_table.find_one(filter):
+    if not account_exists(data['username']):
         user_table.insert_one({
             "username":data['username'],
             "funds":data['amount'],
             "stocks":[],
-            "transactions":[
-                {
-                    "timestamp":time.time(),
-                    "server":"TS1",
-                    "transactionNum":data['trxNum'],
-                    "command":data['cmd']
-                }
-            ]
+            "transactions":[tx]
         })
+        transaction_table.insert_one(tx)
+        return "created account"
     # else, update existing user
     else:
         balance = user_table.find_one(filter)["funds"]
         update = {"$set": {"funds": float(balance) + float(data['amount'])},
-                  "$push": {"transactions": {
-                            "timestamp":time.time(),
-                            "server":"TS1",
-                            "transactionNum":data['trxNum'],
-                            "command":data['cmd']
-                        }}}
+                  "$push": {"transactions": tx}}
         user_table.update_one(filter, update)
+        transaction_table.insert_one(tx)
     for x in user_table.find():
         print(x)
-    return "created account"
+    return "updated account"
 
 
 @app.route("/display_summary", methods=["POST"])
@@ -94,22 +87,12 @@ def display_summary():
 def buy():
     data = request.json
     filter = {"username":data['username']}
-
-    new_tx = {"$push": { "transactions": {
-            "timestamp":time.time(),
-            "server":"TS1",
-            "transactionNum":data['trxNum'],
-            "command":"BUY",
-            "sym": data['sym'],
-            "price": data['price']  
-            }
-        }
-    }
+    tx = new_transaction(data)
+    new_tx = {"$push": { "transactions": tx}}
     # update the array of transactions to include a buy
     user_table.update_one(filter, new_tx)
-    for d in user_table.find():
-        print(d)
-    return data
+    transaction_table.insert_one(tx)
+    return "Added to transactions. 60 seconds to COMMIT"
 
 
 @app.route("/commit_buy", methods=["POST"])
@@ -211,16 +194,11 @@ def sell():
             valid_transaction = True
     if valid_transaction:
         #add to transactions[]
-        update = {"$push": {"transactions": {
-            "timestamp":time.time(),
-            "server":"TS1",
-            "transactionNum":data['trxNum'],
-            "command":"SELL",
-            "stockSymbol":data['sym'],
-            "amount":data['amount']
-        }}}
-        user_table.update_one(filter, update)    
-    return 'Added to transactions'
+        tx = new_transaction(data)
+        update = {"$push": {"transactions": tx}}
+        user_table.update_one(filter, update)   
+        transaction_table.insert_one(tx) 
+    return 'Added to transactions. 60 seconds to COMMIT'
 
 
 @app.route("/commit_sell", methods=["POST"])
@@ -418,6 +396,23 @@ def account_exists(username):
     if user_table.find_one(query):
         return True
     return False
+
+def new_transaction(data):
+    cmd = data['cmd']
+    trx = {
+        "type":"accountTransaction",
+        "timestamp":time.time(),
+        "server":"TS1",
+        "transactionNum":data['trxNum'],
+        "command":cmd,
+        "username": data['username'],
+        "amount":data['amount']
+    }
+    if cmd == "BUY" or cmd == "SELL":
+        trx["sym"] = data['sym']
+        trx["flag"] = "pending"
+    
+    return trx
 
 
 if __name__ =="__main__":
