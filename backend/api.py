@@ -175,11 +175,49 @@ def commit_buy():
 # TODO
 @app.route("/cancel_buy", methods=["POST"])
 def cancel_buy():
+    # For Testing:
+    # user_table.insert_one({
+    #     "username":"test",
+    #     "funds":"5000.0",
+    #     "stocks":[{"sym":"AP", "amount":"10000.0"}, {"sym":"GO", "amount":"2000"}],
+    #     "flag":"pending"
+    #     "transactions":[
+    #         {"timestamp":time.time(), "command":"SELL", "stockSymbol":"AP", "amount":"500"},
+    #         {"timestamp":time.time(), "command":"BUY", "stockSymbol":"AP", "amount":"500"},
+    #         {"timestamp":time.time(), "command":"ADD", "amount":"1000"}
+    #     ]
+    # })
     # check if a BUY command was executed in the last 60 seconds
 
-    # if yes, cancel the transaction (remove pending flag)
-    # dont add to stocks[]
-    pass
+    data = request.json
+    timestamp = time.time()
+    user_filter = {"username": data['username']}
+    recent_tx = recent_transactions(data['username'], "BUY", timestamp)
+
+    print(recent_tx)
+    #get the most recent trx index
+    i = len(recent_tx) - 1
+
+    if len(recent_tx) > 0:
+        if (recent_tx[0]['transaction'][i]['flag'] == 'pending'):
+            # get the most recent transaction
+            txNum = recent_tx[0]['transaction'][i]['transactionNum']
+            # Update the "flag" field for the most recent BUY transaction
+            user_table.update_one(
+                {"username": data['username'], "transactions.transactionNum": txNum},
+                {"$set": {"transactions.$.flag": "cancelled"}}
+            )
+            # Add the new CANCEL_BUY transaction to the list
+            newTx = new_transaction(data)
+            user_table.update_one(user_filter, {"$push": { "transactions": newTx}})
+            return "Transaction has been cancelled"
+        else:
+            #not pending
+            new_transaction(data, error="No recent BUY transactions.")
+            return "No recent buy transactions"
+    else:
+        new_transaction(data, error="No recent BUY transactions.")
+        return "No recent buy transactions"
 
 
 # TODO
@@ -425,6 +463,7 @@ def new_transaction(data, **atr):
         }
         transaction_table.insert_one(tx)
         return tx
+    
     tx = {
         "type":"accountTransaction",
         "timestamp":time.time(),
@@ -432,21 +471,22 @@ def new_transaction(data, **atr):
         "transactionNum":data['trxNum'],
         "command":cmd,
         "username": data['username'],
-        "amount":data['amount']
     }
-    if cmd == "BUY" or cmd == "SELL":
+
+    if cmd == "BUY":
+        tx["amount"] = data['amount']
         tx["sym"] = data['sym']
         tx["flag"] = "pending"
-    
-    if cmd in ["COMMIT_BUY", "COMMIT_SELL", "CANCEL_BUY", "CANCEL_SELL"]:
-        tx = {
-            "type":"accountTransaction",
-            "timestamp":time.time(),
-            "server":"TS1",
-            "transactionNum":data['trxNum'],
-            "command":cmd,
-            "username": data['username']
-        }
+        return tx
+
+    if cmd == "SELL":
+        tx["amount"] = data['amount']
+        tx["sym"] = data['sym']
+        return tx
+
+    if cmd == "ADD":
+        tx["amount"] = data['amount']
+        return tx
     
     transaction_table.insert_one(tx)
     return tx
@@ -492,7 +532,6 @@ def recent_transactions(username, cmd, timestamp):
             { "$project": fields }
         ]
     ))
-
 
 
 if __name__ =="__main__":
