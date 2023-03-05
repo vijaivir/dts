@@ -230,50 +230,13 @@ def commit_sell():
     if not account_exists(data['username']):
         new_transaction(data, error="The specified user does not exist.")
     timestamp = time.time()
-    greater_than_time = timestamp - 60
+    recent_tx = recent_transactions(data['username'], "SELL", timestamp)
 
-    # filter to get only commands of type SELL in the correct time
-    filter = {
-        "username": data["username"],
-        "transactions": {
-            "$elemMatch": {
-            "command": "SELL",
-            "timestamp": {
-                "$gte": greater_than_time
-                }
-            }
-        }
-    }
-
-    # create the projection
-    fields = {
-        "_id": 0,
-        "transaction": {
-            "$filter": {
-            "input": "$transactions",
-            "as":"transaction",
-            "cond": {
-                "$and": [
-                { "$eq": [ "$$transaction.command", "SELL" ] },
-                { "$gte": [ "$$transaction.timestamp", greater_than_time ] }
-                ]
-            }
-            }
-        }
-    }
-    #sell_transactions = user_table.find_one(filter)
-    # perform the aggregation pipeline to match and extract the desired fields
-    valid_sell = list(user_table.aggregate([
-            { "$match": filter },
-            { "$project": fields }
-        ]
-    ))
-
-    if len(valid_sell) > 0:
+    if len(recent_tx) > 0:
         # get the most recent index
-        i = len(valid_sell) - 1
-        stock = valid_sell[i]['transaction'][0]['stockSymbol']
-        sell_price = valid_sell[i]["transaction"][0]["amount"]
+        i = len(recent_tx) - 1
+        stock = recent_tx[i]['transaction'][0]['stockSymbol']
+        sell_price = recent_tx[i]["transaction"][0]["amount"]
         user_filter = {"username": data['username']}
         stock_filter = {"username": data['username'], "stocks.sym": stock}
         balance = user_table.find_one(user_filter)['funds']
@@ -315,7 +278,7 @@ def cancel_sell():
     #     "funds":"5000.0",
     #     "stocks":[{"sym":"AP", "amount":"10000.0"}, {"sym":"GO", "amount":"2000"}],
     #     "transactions":[
-    #         {"timestamp":time.time(), "command":"SELL", "stockSymbol":"AP", "amount":"500"},
+    #         {"timestamp":time.time(), "command":"SELL", "stockSymbol":"AP", "amount":"500", "flag":"pending", "transactionNum":"1"},
     #         {"timestamp":time.time(), "command":"BUY", "stockSymbol":"AP", "amount":"500"},
     #         {"timestamp":time.time(), "command":"ADD", "amount":"1000"}
     #     ]
@@ -325,21 +288,29 @@ def cancel_sell():
     timestamp = time.time()
     user_filter = {"username": data['username']}
     recent_tx = recent_transactions(data['username'], "SELL", timestamp)
+    print("recent_tx", recent_tx)
 
-    if len(recent_tx) > 0:
+    if len(recent_tx) > 0 :
         # get the most recent transaction
         i = len(recent_tx) - 1
-        txNum = recent_tx[0]['transaction'][i]['transactionNum']
-        # Update the "flag" field for the most recent SELL transaction
-        result = user_table.update_one(
-            {"username": data['username'], "transactions.transactionNum": txNum},
-            {"$set": {"transactions.$.flag": "cancelled"}}
-        )
-        # Add the new CANCEL_SELL transaction to the list
-        newTx = new_transaction(data)
-        user_table.update_one(user_filter, {"$push": { "transactions": {newTx}}})
-        return "Transaction has been cancelled"
+        print('index', i)
+        flag = recent_tx[0]['transaction'][0]['flag']
+        if flag == "pending":
+            # Update the "flag" field for the most recent SELL transaction
+            txNum = recent_tx[0]['transaction'][0]['transactionNum']
+            user_table.update_one(
+                {"username": data['username'], "transactions.transactionNum": txNum},
+                {"$set": {"transactions.$.flag": "cancelled"}}
+            )
+            # Add the new CANCEL_SELL transaction to the list
+            newTx = new_transaction(data)
+            user_table.update_one(user_filter, {"$push": { "transactions": newTx}})
+            return "Transaction has been cancelled"
+        new_transaction(data, error="No recent SELL transactions.")
+        return "No recent sell transactions"
     else:
+        for x in user_table.find():
+            print(x)
         new_transaction(data, error="No recent SELL transactions.")
         return "No recent sell transactions"
 
@@ -425,15 +396,18 @@ def new_transaction(data, **atr):
         }
         transaction_table.insert_one(tx)
         return tx
-    tx = {
-        "type":"accountTransaction",
-        "timestamp":time.time(),
-        "server":"TS1",
-        "transactionNum":data['trxNum'],
-        "command":cmd,
-        "username": data['username'],
-        "amount":data['amount']
-    }
+    
+    if cmd == 'ADD':
+        tx = {
+            "type":"accountTransaction",
+            "timestamp":time.time(),
+            "server":"TS1",
+            "transactionNum":data['trxNum'],
+            "command":cmd,
+            "username": data['username'],
+            "amount":data['amount']
+        }
+
     if cmd == "BUY" or cmd == "SELL":
         tx["sym"] = data['sym']
         tx["flag"] = "pending"
