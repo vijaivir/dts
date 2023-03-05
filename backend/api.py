@@ -149,7 +149,7 @@ def commit_buy():
         return 'Successfully committed.'
 
 
-# TODO
+
 @app.route("/cancel_buy", methods=["POST"])
 def cancel_buy():
     data = request.json
@@ -221,7 +221,6 @@ def sell():
     return str(new_transaction(data, error="Insufficient stock amount."))
 
 
-# TODO error checking and adding the flag functionality
 @app.route("/commit_sell", methods=["POST"])
 def commit_sell():
     data = request.json
@@ -295,7 +294,6 @@ def cancel_sell():
         return 'Successfully cancelled.'
 
 
-
 # TODO
 @app.route("/set_sell_amount", methods=["POST"])
 def set_sell_amount():
@@ -303,7 +301,6 @@ def set_sell_amount():
     if not account_exists(data['username']):
         new_transaction(data, error="The specified user does not exist.")
     
-
 
 
 # TODO
@@ -317,6 +314,8 @@ def set_sell_trigger():
 def cancel_set_sell():
     pass
 
+
+# TODO
 @app.route("/dumplog", methods=["POST"])
 def dumplog():
     # user_table.insert_one({
