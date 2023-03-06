@@ -1,6 +1,7 @@
 from flask import Flask, request
 from pymongo import MongoClient
 import xml.etree.ElementTree as ET
+import xml.dom.minidom
 import time
 import requests
 
@@ -91,19 +92,6 @@ def add():
 
 @app.route("/display_summary", methods=["POST"])
 def display_summary():
-    user = {
-            'username':"testuser",
-            'funds':500,
-            'reserved_sell':[{'sym':'A', 'amount':500}],
-            'stocks':[{'sym':'A', 'amount':500}],
-            'transactions':[
-            {'timestamp':time.time(), 'transactionNum':3, 'command': 'BUY', 'username':'testuser', 'amount':500, 'sym':'A', 'flag':'pending', 'type':'accountTransaction', "server":'TS1'},
-            {'timestamp':time.time(), 'transactionNum':3, 'command': 'SELL', 'username':'testuser', 'amount':500, 'sym':'A', 'flag':'pending', 'type':'accountTransaction', "server":'TS1'},
-            {'timestamp':time.time(), 'transactionNum':3, 'command': 'BUY', 'username':'testuser', 'amount':500, 'sym':'A', 'flag':'pending', 'type':'accountTransaction', "server":'TS1'},
-            {'timestamp':time.time(), 'transactionNum':3, 'command': 'SELL', 'username':'testuser', 'amount':500, 'sym':'A', 'error':'this is an error', 'type':'errorEvent', "server":'TS1'}
-            ]
-        }
-    user_table.insert_one(user)
     data = request.json
     filter = {'username':data['username']}
     return str(user_table.find_one(filter))
@@ -461,44 +449,85 @@ def cancel_set_sell():
 
 # TODO
 @app.route("/dumplog", methods=["POST"])
-def dumplog(*args):
+def dumplog():
     data = request.json
 
-    if not account_exists(data['username']):
-        new_transaction(data, error="The specified user does not exist.")
+    #username was provided
+    if 'username' in data:
+        if not account_exists(data['username']):
+            return "The specified user does not exist."
 
-    filter = {"username":data['username']}
-    user_transactions = user_table.find_one(filter)['transactions']
-    root = ET.Element("log")
-    for t in user_transactions:
-        print(t)
-        if t['type'] == 'accountTransaction':
-            transaction = ET.SubElement(root, "accountTransaction")
-            ET.SubElement(transaction, "timestamp").text = str((t["timestamp"]))
-            ET.SubElement(transaction, "transactionNum").text = str((t["transactionNum"]))
-            ET.SubElement(transaction, "command").text = t["command"]
-            ET.SubElement(transaction, "username").text = t["username"]
-            ET.SubElement(transaction, "server").text = t["server"]
+        filter = {"username":data['username']}
+        user_transactions = user_table.find_one(filter)['transactions']
+        root = ET.Element("log")
+        for t in user_transactions:
+            if t['type'] == 'accountTransaction':
+                transaction = ET.SubElement(root, "accountTransaction")
+                ET.SubElement(transaction, "timestamp").text = str((t["timestamp"]))
+                ET.SubElement(transaction, "transactionNum").text = str((t["transactionNum"]))
+                ET.SubElement(transaction, "command").text = t["command"]
+                ET.SubElement(transaction, "username").text = t["username"]
+                ET.SubElement(transaction, "server").text = t["server"]
 
-            if t['command'] == 'ADD':
-                ET.SubElement(transaction, "amount").text = str(t["amount"])
-            if t['command'] in ["BUY", "SELL", "SET_SELL_AMOUNT", "SET_SELL_TRIGGER", "SET_BUY_AMOUNT", "SET_BUY_TRIGGER"]:
-                ET.SubElement(transaction, "amount").text = str(t["amount"])
-                ET.SubElement(transaction, "stockSymbol").text = t["sym"]
+                if t['command'] == 'ADD':
+                    ET.SubElement(transaction, "amount").text = str(t["amount"])
+                if t['command'] in ["BUY", "SELL", "SET_SELL_AMOUNT", "SET_SELL_TRIGGER", "SET_BUY_AMOUNT", "SET_BUY_TRIGGER"]:
+                    ET.SubElement(transaction, "amount").text = str(t["amount"])
+                    ET.SubElement(transaction, "stockSymbol").text = t["sym"]
 
-        elif t['type'] == 'errorEvent':
-            transaction = ET.SubElement(root, "errorEvent")
-            ET.SubElement(transaction, "timestamp").text = str((t["timestamp"]))
-            ET.SubElement(transaction, "transactionNum").text = str((t["transactionNum"]))
-            ET.SubElement(transaction, "command").text = t["command"]
-            ET.SubElement(transaction, "username").text = t["username"]
-            ET.SubElement(transaction, "server").text = t["server"]
-            ET.SubElement(transaction, "errorMessage").text = str(t["error"])
+            elif t['type'] == 'errorEvent':
+                transaction = ET.SubElement(root, "errorEvent")
+                ET.SubElement(transaction, "timestamp").text = str((t["timestamp"]))
+                ET.SubElement(transaction, "transactionNum").text = str((t["transactionNum"]))
+                ET.SubElement(transaction, "command").text = t["command"]
+                ET.SubElement(transaction, "username").text = t["username"]
+                ET.SubElement(transaction, "server").text = t["server"]
+                ET.SubElement(transaction, "errorMessage").text = str(t["error"])
 
-        elif t['type'] == 'quoteServer':
-            print('quote server event')
+            elif t['type'] == 'quoteServer':
+                print('quote server event')
 
-    return ET.tostring(root)
+        xml_str = ET.tostring(root)
+        pretty_xml = xml.dom.minidom.parseString(xml_str).toprettyxml()
+        with open(data['filename'], 'wb') as f:
+            f.write(pretty_xml.encode('utf-8'))
+    
+    # no username - print from the transaction_table
+    else:
+        root = ET.Element("log")
+        for t in transaction_table.find():
+            if t['type'] == 'accountTransaction':
+                transaction = ET.SubElement(root, "accountTransaction")
+                ET.SubElement(transaction, "timestamp").text = str((t["timestamp"]))
+                ET.SubElement(transaction, "transactionNum").text = str((t["transactionNum"]))
+                ET.SubElement(transaction, "command").text = t["command"]
+                ET.SubElement(transaction, "username").text = t["username"]
+                ET.SubElement(transaction, "server").text = t["server"]
+
+                if t['command'] == 'ADD':
+                    ET.SubElement(transaction, "amount").text = str(t["amount"])
+                if t['command'] in ["BUY", "SELL", "SET_SELL_AMOUNT", "SET_SELL_TRIGGER", "SET_BUY_AMOUNT", "SET_BUY_TRIGGER"]:
+                    ET.SubElement(transaction, "amount").text = str(t["amount"])
+                    ET.SubElement(transaction, "stockSymbol").text = t["sym"]
+
+            elif t['type'] == 'errorEvent':
+                transaction = ET.SubElement(root, "errorEvent")
+                ET.SubElement(transaction, "timestamp").text = str((t["timestamp"]))
+                ET.SubElement(transaction, "transactionNum").text = str((t["transactionNum"]))
+                ET.SubElement(transaction, "command").text = t["command"]
+                ET.SubElement(transaction, "username").text = t["username"]
+                ET.SubElement(transaction, "server").text = t["server"]
+                ET.SubElement(transaction, "errorMessage").text = str(t["error"])
+
+            elif t['type'] == 'quoteServer':
+                print('quote server event')
+
+        xml_str = ET.tostring(root)
+        pretty_xml = xml.dom.minidom.parseString(xml_str).toprettyxml()
+        with open(data['filename'], 'wb') as f:
+            f.write(pretty_xml.encode('utf-8'))
+
+    return pretty_xml.encode('utf-8')
 
 
 @app.route("/clear", methods=["GET"])
@@ -567,10 +596,6 @@ def new_transaction(data, **atr):
         transaction_table.insert_one(tx)
         return tx
     
-    # if cmd in ["CANCEL_SET_SELL", "CANCEL_SET_BUY"]:
-    #     transaction_table.insert_one(tx)
-    #     return tx
-
     return tx
 
 

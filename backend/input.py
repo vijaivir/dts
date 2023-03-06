@@ -57,7 +57,8 @@ def createCommand(line, count):
     elif(cmd == "DUMPLOG"):
         if len(c) == 2:
             requests.post(apiUrl + "/dumplog", json={'filename':c[1]})
-        requests.post(apiUrl + "/dumplog", json={'username':c[1], 'filename':c[2]})
+        else:
+            requests.post(apiUrl + "/dumplog", json={'username':c[1], 'filename':c[2]})
 
     elif(cmd == "DISPLAY_SUMMARY"):
         requests.post(apiUrl + "/display_summary", json={'username':c[1], 'trxNum':trxNum})
