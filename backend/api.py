@@ -17,7 +17,20 @@ Database Structure:
 {
     "username":"",
     "funds":"",
-    "reserved":"",
+    "reserved_buy":[
+        {
+            "sym":"",
+            "amount":"",
+            "trigger_price":""
+        }
+    ],
+    "reserved_sell":[
+        {
+            "sym":"",
+            "amount":"",
+            "trigger_price":""
+        }
+    ],
     "stocks":[
         {
             "sym":"",
@@ -62,7 +75,8 @@ def add():
             "username":data['username'],
             "funds":data['amount'],
             "stocks":[],
-            "reserved": [],
+            "reserved_buy": [],
+            "reserverd_sell": [],
             "transactions":[tx]
         })
         return "created account"
@@ -102,7 +116,6 @@ def buy():
 
 
 
-# TODO add error checking, update flags
 @app.route("/commit_buy", methods=["POST"])
 def commit_buy():
     data = request.json
@@ -199,7 +212,7 @@ def set_buy_amount():
 
     update = {"$set": {"funds": float(balance) - reserve_amount},             
                 "$push": {
-                    "reserved": {
+                    "reserved_buy": {
                         "amount":reserve_amount, "sym": data['sym']
                         }
                     },
@@ -212,7 +225,7 @@ def set_buy_amount():
     return "Set Buy Trigger"
 
 
-# TODO
+
 @app.route("/set_buy_trigger", methods=["POST"])
 def set_buy_trigger():
     # Just adds a buy trigger, not currently implemented to actually go through
@@ -224,7 +237,7 @@ def set_buy_trigger():
     # see if the user has a previous set buy for the stock requested
     valid_set_buy = user_table.find_one({
         "username": data['username'],
-        "reserved": {
+        "reserved_buy": {
             "$elemMatch": {
                 "sym": data['sym']
             }
@@ -241,6 +254,7 @@ def set_buy_trigger():
     return "Set Buy Trigger"
 
 
+
 @app.route("/cancel_set_buy", methods=["POST"])
 def cancel_set_buy():
     data = request.json
@@ -249,7 +263,7 @@ def cancel_set_buy():
         new_transaction(data, error="The specified user does not exist.")
     valid_reserve = user_table.find_one({
         "username":data["username"], 
-        "reserved": {
+        "reserved_buy": {
             "$elemMatch": {
                 "sym": data["sym"]
                 }
@@ -266,7 +280,7 @@ def cancel_set_buy():
     reserve_amount = valid_reserve['reserved'][0]["amount"]
     update = {"$set": {"funds": float(balance) + reserve_amount},             
                 "$pull": {
-                    "reserved": {
+                    "reserved_buy": {
                         "amount":reserve_amount, "sym": data['sym']
                         }
                     },
@@ -375,39 +389,64 @@ def cancel_sell():
         return 'Successfully cancelled.'
 
 
-# TODO
+
+#TODO
 @app.route("/set_sell_amount", methods=["POST"])
 def set_sell_amount():
     data = request.json
+    filter = {'username':data['username']}
+
     if not account_exists(data['username']):
         new_transaction(data, error="The specified user does not exist.")
     
+    # check if the user has the amount of stock
+    valid_stock = user_table.find_one({'username': data['username'], 'stocks.sym': data['sym'], 'stocks.amount': {'$gte': data['amount']}})
+
+    if not valid_stock:
+        new_transaction(data, error="Not enough stock.")
+        return "Not enough stock owned to SET_SELL_AMOUNT"
+    
+    # remove amount from the stock
+
+    # add to reserved sell
+    user_table.update_one(filter, {"$push": {"transactions": new_transaction(data), 
+                                             "reserved_sell": {'sym':data['sym'], 'amount':data['amount']}}})
+    return 'successfully set sell amount'
 
 
-# TODO
+
+#TODO
 @app.route("/set_sell_trigger", methods=["POST"])
 def set_sell_trigger():
-    pass
+    data = request.json
+    filter = {'username':data['username']}
+
+    if not account_exists(data['username']):
+        new_transaction(data, error="The specified user does not exist.")
+
+    # check if the sell amount has been set in reserved_sell[]
+    valid_trigger = user_table.find_one({'username': data['username'], 'reserved_sell.sym': data['sym']})
+
+    if not valid_trigger:
+        new_transaction(data, error="Set sell amount first.")
+        return "Set sell amount first."
+    
+    user_table.update_one({'username': data['username'], 'reserved_sell.sym': data['sym']}, {'$set': {'reserved_sell.$.trigger': data['amount']}})
+    return 'successfully set sell trigger'
 
 
-# TODO
+
+#TODO
 @app.route("/cancel_set_sell", methods=["POST"])
 def cancel_set_sell():
-    pass
+    data = request.json
+    new_transaction(data)
+    return 'successfully cancelled'
 
 
 # TODO
 @app.route("/dumplog", methods=["POST"])
 def dumplog():
-    # user_table.insert_one({
-    #     "username":"test",
-    #     "funds":"5000.0",
-    #     "stocks":[{"sym":"AP", "amount":"10000.0"}, {"sym":"GO", "amount":"2000"}],
-    #     "transactions":[
-    #         {"type":"userCommand", "timestamp":time.time(), "command":"SELL", "stockSymbol":"AP", "amount":"500"},
-    #         {"type":"systemEvent", "timestamp":time.time(), "command":"BUY", "stockSymbol":"AP", "amount":"500"}
-    #     ]
-    # })
     data = request.json
     filter = {"username":data['username']}
     user_transactions = user_table.find_one(filter)['transactions']
@@ -479,6 +518,18 @@ def new_transaction(data, **atr):
     if cmd in ["COMMIT_SELL","CANCEL_SELL","COMMIT_BUY","CANCEL_BUY"]:
         tx["type"] = "accountTransaction"
         tx['server'] = "TS1"
+        transaction_table.insert_one(tx)
+        return tx
+    
+    if cmd in ["SET_SELL_AMOUNT","SET_SELL_TRIGGER","SET_BUY_AMOUNT","SET_BUY_TRIGGER"]:
+        tx["type"] = "accountTransaction"
+        tx['server'] = "TS1"
+        tx["sym"] = data['sym']
+        tx["amount"] = data['amount']
+        transaction_table.insert_one(tx)
+        return tx
+    
+    if cmd in ["CANCEL_SET_SELL", "CANCEL_SET_BUY"]:
         transaction_table.insert_one(tx)
         return tx
 

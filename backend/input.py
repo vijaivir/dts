@@ -54,7 +54,6 @@ def createCommand(line, count):
     elif(cmd == "CANCEL_SET_SELL"):
         requests.post(apiUrl + "/cancel_set_sell", json={'cmd':cmd, 'username':c[1], 'sym':c[2], 'trxNum':trxNum})
 
-    #TODO need another dumplog that works without filename
     elif(cmd == "DUMPLOG"):
         requests.post(apiUrl + "/dumplog", json={'fileName':c[1], 'username':c[2], 'trxNum':trxNum})
 

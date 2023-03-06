@@ -248,5 +248,49 @@ class UnitTest(unittest.TestCase):
         tx_filter = {"username": data['username'], "transactions.transactionNum": 4}
         self.assertEqual(self.user_table.find_one(tx_filter, {"transactions.$": 1})['transactions'][0]['flag'], 'cancelled') # check flag set to complete
 
+    def test_set_sell_amount(self):
+        user = {
+            'username':"testuser",
+            'funds':500,
+            'reserved':[],
+            'stocks':[{'sym':'A', 'amount':500}],
+            'transactions':[]
+        }
+        self.user_table.insert_one(user)
+
+        # invalid request - not enough stock
+        data = {'cmd':'SET_SELL_AMOUNT', 'username':'testuser', 'sym':'A', 'amount':600, 'trxNum':1 }
+        self.client.post('/set_sell_amount', json=data)
+        self.assertEqual(self.transaction_table.find_one({'username':'testuser'})['error'], 'Not enough stock.')
+
+        # valid request - enough stock
+        data = {'cmd':'SET_SELL_AMOUNT', 'username':'testuser', 'sym':'A', 'amount':400, 'trxNum':1 }
+        response = self.client.post('/set_sell_amount', json=data)
+        self.assertEqual(response.data, b'successfully set sell amount')
+        self.assertEqual(self.user_table.find_one({'username':'testuser'})['reserved_sell'][0]['amount'], 400)
+        
+
+    def test_set_sell_trigger(self):
+        user = {
+            'username':"testuser",
+            'funds':500,
+            'reserved_sell':[{'sym':'A', 'amount':500}],
+            'stocks':[{'sym':'A', 'amount':500}],
+            'transactions':[]
+        }
+        self.user_table.insert_one(user)
+
+        # invalid request - no sell amount
+        data = {'cmd':'SET_SELL_TRIGGER', 'username':'testuser', 'sym':'B', 'amount':600, 'trxNum':1 }
+        self.client.post('/set_sell_trigger', json=data)
+        self.assertEqual(self.transaction_table.find_one({'username':'testuser'})['error'], 'Set sell amount first.')
+
+        # # valid request - sell amount set
+        data = {'cmd':'SET_SELL_TRIGGER', 'username':'testuser', 'sym':'A', 'amount':50, 'trxNum':1 }
+        response = self.client.post('/set_sell_trigger', json=data)
+        self.assertEqual(response.data, b'successfully set sell trigger')
+        self.assertEqual(self.user_table.find_one({'username':'testuser'})['reserved_sell'][0]['trigger'], 50)
+
+
 if __name__ == '__main__':
     unittest.main()
