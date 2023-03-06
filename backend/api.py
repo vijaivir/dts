@@ -17,7 +17,7 @@ Database Structure:
 {
     "username":"",
     "funds":"",
-    "reserve":"",
+    "reserved":"",
     "stocks":[
         {
             "sym":"",
@@ -395,7 +395,7 @@ def dumplog():
 @app.route("/clear", methods=["GET"])
 def clear():
     user_table.delete_many({})
-
+    transaction_table.delete_many({})
     return "cleared DB"
 
 
@@ -443,7 +443,7 @@ def new_transaction(data, **atr):
         transaction_table.insert_one(tx)
         return tx
     
-    if cmd == "COMMIT_SELL" or cmd == "CANCEL_SELL" or cmd == "COMMIT_BUY" or cmd == "CANCEL_BUY":
+    if cmd in ["COMMIT_SELL","CANCEL_SELL","COMMIT_BUY","CANCEL_BUY"]:
         tx["type"] = "accountTransaction"
         tx['server'] = "TS1"
         transaction_table.insert_one(tx)
