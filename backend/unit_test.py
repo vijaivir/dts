@@ -291,6 +291,22 @@ class UnitTest(unittest.TestCase):
         self.assertEqual(response.data, b'successfully set sell trigger')
         self.assertEqual(self.user_table.find_one({'username':'testuser'})['reserved_sell'][0]['trigger'], 50)
 
+    def test_dumplog(self):
+        user = {
+            'username':"testuser",
+            'funds':500,
+            'reserved_sell':[{'sym':'A', 'amount':500}],
+            'stocks':[{'sym':'A', 'amount':500}],
+            'transactions':[
+            {'timestamp':time.time(), 'transactionNum':3, 'command': 'BUY', 'username':'testuser', 'amount':500, 'sym':'A', 'flag':'pending', 'type':'accountTransaction'},
+            {'timestamp':time.time(), 'transactionNum':3, 'command': 'SELL', 'username':'testuser', 'amount':500, 'sym':'A', 'flag':'pending', 'type':'accountTransaction'},
+            {'timestamp':time.time(), 'transactionNum':3, 'command': 'BUY', 'username':'testuser', 'amount':500, 'sym':'A', 'flag':'pending', 'type':'accountTransaction'},
+            {'timestamp':time.time(), 'transactionNum':3, 'command': 'SELL', 'username':'testuser', 'amount':500, 'sym':'A', 'error':'this is an error', 'type':'errorEvent'}
+            ]
+        }
+        self.user_table.insert_one(user)
+        data = {'cmd':'DUMPLOG', 'username':'testuser', 'trxNum':1 }
+        self.client.post('/dumplog', json=data)
 
 if __name__ == '__main__':
     unittest.main()

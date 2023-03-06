@@ -55,10 +55,12 @@ def createCommand(line, count):
         requests.post(apiUrl + "/cancel_set_sell", json={'cmd':cmd, 'username':c[1], 'sym':c[2], 'trxNum':trxNum})
 
     elif(cmd == "DUMPLOG"):
-        requests.post(apiUrl + "/dumplog", json={'fileName':c[1], 'username':c[2], 'trxNum':trxNum})
+        if len(c) == 2:
+            requests.post(apiUrl + "/dumplog", json={'filename':c[1]})
+        requests.post(apiUrl + "/dumplog", json={'username':c[1], 'filename':c[2]})
 
     elif(cmd == "DISPLAY_SUMMARY"):
-        requests.post(apiUrl + "/display_summary", json={'trxNum':trxNum})
+        requests.post(apiUrl + "/display_summary", json={'username':c[1], 'trxNum':trxNum})
 
 
 def readInputFile(fileName):

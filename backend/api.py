@@ -91,7 +91,22 @@ def add():
 
 @app.route("/display_summary", methods=["POST"])
 def display_summary():
-    pass
+    user = {
+            'username':"testuser",
+            'funds':500,
+            'reserved_sell':[{'sym':'A', 'amount':500}],
+            'stocks':[{'sym':'A', 'amount':500}],
+            'transactions':[
+            {'timestamp':time.time(), 'transactionNum':3, 'command': 'BUY', 'username':'testuser', 'amount':500, 'sym':'A', 'flag':'pending', 'type':'accountTransaction', "server":'TS1'},
+            {'timestamp':time.time(), 'transactionNum':3, 'command': 'SELL', 'username':'testuser', 'amount':500, 'sym':'A', 'flag':'pending', 'type':'accountTransaction', "server":'TS1'},
+            {'timestamp':time.time(), 'transactionNum':3, 'command': 'BUY', 'username':'testuser', 'amount':500, 'sym':'A', 'flag':'pending', 'type':'accountTransaction', "server":'TS1'},
+            {'timestamp':time.time(), 'transactionNum':3, 'command': 'SELL', 'username':'testuser', 'amount':500, 'sym':'A', 'error':'this is an error', 'type':'errorEvent', "server":'TS1'}
+            ]
+        }
+    user_table.insert_one(user)
+    data = request.json
+    filter = {'username':data['username']}
+    return str(user_table.find_one(filter))
 
 
 @app.route("/buy", methods=["POST"])
@@ -446,20 +461,42 @@ def cancel_set_sell():
 
 # TODO
 @app.route("/dumplog", methods=["POST"])
-def dumplog():
+def dumplog(*args):
     data = request.json
+
+    if not account_exists(data['username']):
+        new_transaction(data, error="The specified user does not exist.")
+
     filter = {"username":data['username']}
     user_transactions = user_table.find_one(filter)['transactions']
     root = ET.Element("log")
     for t in user_transactions:
-        transaction = ET.SubElement(root, "userCommand")
-        
-        #TODO: add error checking to ensure that the transaction contains the attribute
-        # Add the transaction attributes
-        ET.SubElement(transaction, "timestamp").text = str((t["timestamp"]))
-        ET.SubElement(transaction, "command").text = t["command"]
-        ET.SubElement(transaction, "username").text = data["username"]
-        ET.SubElement(transaction, "amount").text = t["amount"]
+        print(t)
+        if t['type'] == 'accountTransaction':
+            transaction = ET.SubElement(root, "accountTransaction")
+            ET.SubElement(transaction, "timestamp").text = str((t["timestamp"]))
+            ET.SubElement(transaction, "transactionNum").text = str((t["transactionNum"]))
+            ET.SubElement(transaction, "command").text = t["command"]
+            ET.SubElement(transaction, "username").text = t["username"]
+            ET.SubElement(transaction, "server").text = t["server"]
+
+            if t['command'] == 'ADD':
+                ET.SubElement(transaction, "amount").text = str(t["amount"])
+            if t['command'] in ["BUY", "SELL", "SET_SELL_AMOUNT", "SET_SELL_TRIGGER", "SET_BUY_AMOUNT", "SET_BUY_TRIGGER"]:
+                ET.SubElement(transaction, "amount").text = str(t["amount"])
+                ET.SubElement(transaction, "stockSymbol").text = t["sym"]
+
+        elif t['type'] == 'errorEvent':
+            transaction = ET.SubElement(root, "errorEvent")
+            ET.SubElement(transaction, "timestamp").text = str((t["timestamp"]))
+            ET.SubElement(transaction, "transactionNum").text = str((t["transactionNum"]))
+            ET.SubElement(transaction, "command").text = t["command"]
+            ET.SubElement(transaction, "username").text = t["username"]
+            ET.SubElement(transaction, "server").text = t["server"]
+            ET.SubElement(transaction, "errorMessage").text = str(t["error"])
+
+        elif t['type'] == 'quoteServer':
+            print('quote server event')
 
     return ET.tostring(root)
 
@@ -509,13 +546,14 @@ def new_transaction(data, **atr):
 
     if cmd == "BUY" or cmd == "SELL":
         tx["type"] = "accountTransaction"
+        tx['server'] = "TS1"
         tx["amount"] = data['amount']
         tx["sym"] = data['sym']
         tx["flag"] = "pending"
         transaction_table.insert_one(tx)
         return tx
     
-    if cmd in ["COMMIT_SELL","CANCEL_SELL","COMMIT_BUY","CANCEL_BUY"]:
+    if cmd in ["COMMIT_SELL","CANCEL_SELL","COMMIT_BUY","CANCEL_BUY","CANCEL_SET_SELL", "CANCEL_SET_BUY"]:
         tx["type"] = "accountTransaction"
         tx['server'] = "TS1"
         transaction_table.insert_one(tx)
@@ -529,9 +567,9 @@ def new_transaction(data, **atr):
         transaction_table.insert_one(tx)
         return tx
     
-    if cmd in ["CANCEL_SET_SELL", "CANCEL_SET_BUY"]:
-        transaction_table.insert_one(tx)
-        return tx
+    # if cmd in ["CANCEL_SET_SELL", "CANCEL_SET_BUY"]:
+    #     transaction_table.insert_one(tx)
+    #     return tx
 
     return tx
 
