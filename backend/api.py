@@ -241,10 +241,43 @@ def set_buy_trigger():
     return "Set Buy Trigger"
 
 
-# TODO
 @app.route("/cancel_set_buy", methods=["POST"])
 def cancel_set_buy():
-    pass
+    data = request.json
+    filter = {"username":data['username']}
+    if not account_exists(data['username']):
+        new_transaction(data, error="The specified user does not exist.")
+    valid_reserve = user_table.find_one({
+        "username":data["username"], 
+        "reserved": {
+            "$elemMatch": {
+                "sym": data["sym"]
+                }
+            }
+        },
+        {"reserved.sym": 1, "reserved.amount": 1 }
+        )
+
+    if not valid_reserve:
+        new_transaction(data, error="No prereq SET_BUY_AMOUNT")
+        return f"No prereq SET_BUY_AMOUNT for stock {data['sym']}"
+
+    balance = user_table.find_one(filter)["funds"]
+    reserve_amount = valid_reserve['reserved'][0]["amount"]
+    update = {"$set": {"funds": float(balance) + reserve_amount},             
+                "$pull": {
+                    "reserved": {
+                        "amount":reserve_amount, "sym": data['sym']
+                        }
+                    },
+                }
+    user_table.update_one(filter, update)
+    tx = new_transaction(data)
+    new_tx = {"$push": { "transactions": tx}}
+    user_table.update_one(filter, new_tx)
+
+    return "Cancelled SET_BUY"
+
 
 
 @app.route("/sell", methods=["POST"])
