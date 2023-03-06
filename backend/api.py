@@ -62,6 +62,7 @@ def add():
             "username":data['username'],
             "funds":data['amount'],
             "stocks":[],
+            "reserved": [],
             "transactions":[tx]
         })
         return "created account"
@@ -94,7 +95,7 @@ def buy():
     return "Added to transactions. 60 seconds to COMMIT"
 
 
-# TODO add error checking
+# TODO add error checking, update flags
 @app.route("/commit_buy", methods=["POST"])
 def commit_buy():
     data = request.json
@@ -183,16 +184,62 @@ def cancel_buy():
     pass
 
 
-# TODO
 @app.route("/set_buy_amount", methods=["POST"])
 def set_buy_amount():
-    pass
+    data = request.json
+    if not account_exists(data['username']):
+        new_transaction(data, error="The specified user does not exist.")
+    filter = {"username":data['username']}
+    
+    reserve_amount = data['amount']
+    # check if the user has the necessary funds
+    balance = user_table.find_one(filter)["funds"]
+    if balance < reserve_amount:
+        new_transaction(data, error="Insufficient Funds.")
+        return "Insufficient Funds"
+
+    update = {"$set": {"funds": float(balance) - reserve_amount},             
+                "$push": {
+                    "reserved": {
+                        "amount":reserve_amount, "sym": data['sym']
+                        }
+                    },
+                }
+
+    user_table.update_one(filter, update)
+    tx = new_transaction(data)
+    new_tx = {"$push": { "transactions": tx}}
+    user_table.update_one(filter, new_tx)
+    return "Set Buy Trigger"
 
 
 # TODO
 @app.route("/set_buy_trigger", methods=["POST"])
 def set_buy_trigger():
-    pass
+    # Just adds a buy trigger, not currently implemented to actually go through
+    data = request.json
+    filter = {"username":data['username']}
+    if not account_exists(data['username']):
+        new_transaction(data, error="The specified user does not exist.")
+
+    # see if the user has a previous set buy for the stock requested
+    valid_set_buy = user_table.find_one({
+        "username": data['username'],
+        "reserved": {
+            "$elemMatch": {
+                "sym": data['sym']
+            }
+        }   
+    })
+
+    if not valid_set_buy:
+        new_transaction(data, error="No prereq SET_BUY_AMOUNT")
+        return f"No prereq SET_BUY_AMOUNT for stock {data['sym']} "
+    
+    tx = new_transaction(data)
+    new_tx = {"$push": { "transactions": tx}}
+    user_table.update_one(filter, new_tx)
+    return "Set Buy Trigger"
 
 
 # TODO
