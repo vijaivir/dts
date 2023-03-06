@@ -102,10 +102,7 @@ def buy():
 
 
 
-<<<<<<< HEAD
 # TODO add error checking, update flags
-=======
->>>>>>> c978e90730726ad79170b040a61e8ed521c17dcb
 @app.route("/commit_buy", methods=["POST"])
 def commit_buy():
     data = request.json
