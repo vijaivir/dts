@@ -31,7 +31,7 @@ Database Structure:
             "server":"", (TS1 or QS1)
             "transactionNum":"",
             "command":"",
-            "flag":"",
+            "flag":"", (pending, complete, or cancelled)
             "username":"",
             "sym":"", (does not apply to ADD)
             "amount":"", (could mean "funds" or "price". name it "amount" for simplicity)
@@ -80,108 +80,110 @@ def display_summary():
     pass
 
 
-# TODO add error checking if account does not exist or insufficient funds
 @app.route("/buy", methods=["POST"])
 def buy():
     data = request.json
+    # check if account exists
     if not account_exists(data['username']):
-        new_transaction(data, error="The specified user does not exist.")
+        return str(new_transaction(data, error="The specified user does not exist."))
+
     filter = {"username":data['username']}
-    tx = new_transaction(data)
-    new_tx = {"$push": { "transactions": tx}}
-    # update the array of transactions to include a buy
-    user_table.update_one(filter, new_tx)
-    transaction_table.insert_one(tx)
-    return "Added to transactions. 60 seconds to COMMIT"
+    funds = user_table.find_one(filter)['funds']
+
+    # check if sufficient funds to buy
+    if funds >= data['amount']:
+        #add to transactions[]
+        tx = new_transaction(data)
+        update = {"$push": {"transactions": tx}}
+        user_table.update_one(filter, update)   
+        return 'Added to transactions. 60 seconds to COMMIT'
+    # else create an error transaction for the transaction_table
+    return str(new_transaction(data, error="Insufficient funds."))
 
 
+
+<<<<<<< HEAD
 # TODO add error checking, update flags
+=======
+>>>>>>> c978e90730726ad79170b040a61e8ed521c17dcb
 @app.route("/commit_buy", methods=["POST"])
 def commit_buy():
     data = request.json
-    timestamp = time.time()
-    greater_than_time = timestamp - 60
 
-    # filter to get only commands of type BUY in the correct time
-    filter = {
-        "username": data["username"],
-        "transactions": {
-            "$elemMatch": {
-            "command": "BUY",
-            "timestamp": {
-                "$gte": greater_than_time
-                }
-            }
-        }
-    }
-
-    # create the projection to extract only the price field from the matching transaction
-    fields = {
-        "_id": 0,
-        "price": {
-            "$filter": {
-            "input": "$transactions",
-            "as": "transaction",
-            "cond": {
-                "$and": [
-                { "$eq": [ "$$transaction.command", "BUY" ] },
-                { "$gte": [ "$$transaction.timestamp", greater_than_time ] }
-                ]
-            }
-            }
-        }
-    }
-
-    # perform the aggregation pipeline to match and extract the desired fields
-    valid_buy = list(user_table.aggregate([
-            { "$match": filter },
-            { "$project": fields }
-        ]
-    ))
-
-    if len(valid_buy) > 0:
-        # subtract the funds and add the stock to user's stocks and add new transaction
-        valid_buy = list(valid_buy)[0]
-        buy_price = valid_buy["price"][0]["price"]
-        stock_bought = valid_buy["price"][0]["sym"]
-        print("STOCK BOUGHT", stock_bought)
-        balance = user_table.find_one({"username":data["username"]})["funds"]
-        update_funds = {"$set": {"funds": float(balance) - buy_price},             
-                        "$push": {"transactions": {
-                            "timestamp":timestamp,
-                            "server":"TS1",
-                            "transactionNum":data['trxNum'],
-                            "command":data['cmd']
-                        }, 
-                        "stocks": {"sym":stock_bought}},
-                        }
-        user_table.update_one({"username":data["username"]}, update_funds)
-
-        return "Successfly bought stock"
-
-    # add just a new transaction
-    new_tx = {"$push": { "transactions": {
-            "timestamp":timestamp,
-            "server":"TS1",
-            "transactionNum":data['trxNum'],
-            "command":data['cmd'],
-            }
-        }
-    }
-
-    user_table.update_one({"username":data["username"]}, new_tx)
+    # check if account exists
+    if not account_exists(data['username']):
+        return str(new_transaction(data, error="The specified user does not exist."))
     
-    return "No valid buys"
+    # get the most recent BUY transaction with the pending flag
+    timestamp = time.time()
+    recent_tx = recent_transaction(data['username'], "BUY", timestamp)
+
+    if len(recent_tx) == 0:
+        # no recent BUY transactions found, create an error transaction for the transaction_table
+        return str(new_transaction(data, error="No recent BUY transactions."))
+    else:
+        filter = {"username":data['username']}
+        stock = recent_tx['sym']
+        price = recent_tx['amount']
+        txNum = recent_tx['transactionNum']
+
+        # subtract from user funds
+        balance = user_table.find_one(filter)['funds']
+        user_table.update_one(filter, {"$set": {"funds": float(balance) - float(price)}})
+
+        # check if user owns the stock already
+        stock_filter = {"username": data['username'], "stocks.sym": stock}
+        stock_owned = user_table.find_one(stock_filter, {"stocks.$": 1})
+        if stock_owned:
+            # update stock
+            amount_owned = stock_owned['stocks'][0]['amount']
+            user_table.update_one(stock_filter, {"$set": {"stocks.$.amount": float(amount_owned) + float(price)}} )
+        else:
+            # create a new stock
+            user_table.update_one(filter, {"$push": { "stocks": {'sym':stock, 'amount':price}}})
+        
+        # set pending flag to complete
+        user_table.update_one(
+                {"username": data['username'], "transactions.transactionNum": txNum},
+                {"$set": {"transactions.$.flag": "complete"}}
+            )
+        
+        # add the COMMIT_BUY transaction to the user table (new_transaction() auto adds to transaction_table)
+        user_table.update_one(filter, {"$push": { "transactions": new_transaction(data)}})
+
+        return 'Successfully committed.'
 
 
-# TODO
+
 @app.route("/cancel_buy", methods=["POST"])
 def cancel_buy():
-    # check if a BUY command was executed in the last 60 seconds
+    data = request.json
 
-    # if yes, cancel the transaction (remove pending flag)
-    # dont add to stocks[]
-    pass
+    # check if account exists
+    if not account_exists(data['username']):
+        return str(new_transaction(data, error="The specified user does not exist."))
+    
+    # get the most recent transaction with the pending flag
+    timestamp = time.time()
+    recent_tx = recent_transaction(data['username'], "BUY", timestamp)
+    
+    if len(recent_tx) == 0:
+        # no recent BUY transactions found, create an error transaction for the transaction_table
+        return str(new_transaction(data, error="No recent BUY transactions."))
+    else:
+        filter = {"username":data['username']}
+        txNum = recent_tx['transactionNum']
+
+        # set pending flag to cancelled
+        user_table.update_one(
+                {"username": data['username'], "transactions.transactionNum": txNum},
+                {"$set": {"transactions.$.flag": "cancelled"}}
+            )
+
+        # add the CANCEL_SELL transaction to the user table (new_transaction() auto adds to transaction_table)
+        user_table.update_one(filter, {"$push": { "transactions": new_transaction(data)}})
+
+        return 'Successfully cancelled.'
 
 
 @app.route("/set_buy_amount", methods=["POST"])
@@ -250,179 +252,106 @@ def cancel_set_buy():
 
 @app.route("/sell", methods=["POST"])
 def sell():
-    # check if owned stock is >= amount being sold
     data = request.json
+    # check if account exists
     if not account_exists(data['username']):
-        new_transaction(data, error="The specified user does not exist.")
+        return str(new_transaction(data, error="The specified user does not exist."))
 
     filter = {"username":data['username']}
     user_stocks = user_table.find_one(filter)['stocks']
+    # check if owned stock is >= amount being sold
     valid_transaction = False
     for x in user_stocks:
-        if (x['stockSymbol'] == data['sym']) and (float(x['amount']) > float(data['amount'])):
+        if (x['sym'] == data['sym']) and (float(x['amount']) > float(data['amount'])):
             valid_transaction = True
     if valid_transaction:
-        #add to transactions[]
-        tx = new_transaction(data)
-        update = {"$push": {"transactions": tx}}
-        user_table.update_one(filter, update)   
-        transaction_table.insert_one(tx) 
-    return 'Added to transactions. 60 seconds to COMMIT'
+        # add the SELL transaction to the user table (new_transaction() auto adds to transaction_table)
+        user_table.update_one(filter, {"$push": {"transactions": new_transaction(data)}})   
+        return 'Added to transactions. 60 seconds to COMMIT'
+    # else create an error transaction for the transaction_table
+    return str(new_transaction(data, error="Insufficient stock amount."))
 
 
 @app.route("/commit_sell", methods=["POST"])
 def commit_sell():
-    # check if a SELL command was executed in the last 60 seconds
     data = request.json
+
+    # check if account exists
+    if not account_exists(data['username']):
+        return str(new_transaction(data, error="The specified user does not exist."))
+    
+    # get the most recent transaction with the pending flag
     timestamp = time.time()
-    greater_than_time = timestamp - 60
+    recent_tx = recent_transaction(data['username'], "SELL", timestamp)
 
-    # filter to get only commands of type SELL in the correct time
-    filter = {
-        "username": data["username"],
-        "transactions": {
-            "$elemMatch": {
-            "command": "SELL",
-            "timestamp": {
-                "$gte": greater_than_time
-                }
-            }
-        }
-    }
-
-    # create the projection
-    fields = {
-        "_id": 0,
-        "transaction": {
-            "$filter": {
-            "input": "$transactions",
-            "as":"transaction",
-            "cond": {
-                "$and": [
-                { "$eq": [ "$$transaction.command", "SELL" ] },
-                { "$gte": [ "$$transaction.timestamp", greater_than_time ] }
-                ]
-            }
-            }
-        }
-    }
-    #sell_transactions = user_table.find_one(filter)
-    # perform the aggregation pipeline to match and extract the desired fields
-    valid_sell = list(user_table.aggregate([
-            { "$match": filter },
-            { "$project": fields }
-        ]
-    ))
-
-    if len(valid_sell) > 0:
-        stock = valid_sell[0]['transaction'][0]['stockSymbol']
-        sell_price = valid_sell[0]["transaction"][0]["amount"]
-        user_filter = {"username": data['username']}
-        stock_filter = {"username": data['username'], "stocks.sym": stock}
-        balance = user_table.find_one(user_filter)['funds']
-        amount_owned = user_table.find_one(stock_filter, {"stocks.$": 1})['stocks'][0]['amount']
-        update_funds = {"$set": {"funds": float(sell_price) + float(balance)}}
-        user_table.update_one(user_filter, update_funds)
-        new_price = float(amount_owned) - float(sell_price)
-        update_stock = {"$set": {"stocks.$.amount": new_price}}
-        user_table.update_one(stock_filter, update_stock)
-        update_transaction = {"$push": { "transactions": {
-            "timestamp":timestamp,
-            "server":"TS1",
-            "transactionNum":data['trxNum'],
-            "command":data['cmd'],
-            }}
-        }
-        user_table.update_one(user_filter, update_transaction)
-        for d in user_table.find():
-            print(d)
-        return "Successfly sold stock!"
+    if len(recent_tx) == 0:
+        # no recent sell transactions found, create an error transaction for the transaction_table
+        return str(new_transaction(data, error="No recent SELL transactions."))
     else:
-        
-        update_transaction = {"$push": { "transactions": {
-            "timestamp":timestamp,
-            "server":"TS1",
-            "transactionNum":data['trxNum'],
-            "command":data['cmd'],
-            }}
-        }
-        user_table.update_one(user_filter, update_transaction)
-        return "No valid Sells"
+        filter = {"username":data['username']}
+        stock = recent_tx['sym']
+        price = recent_tx['amount']
+        txNum = recent_tx['transactionNum']
 
+        # subtract stock amount
+        stock_filter = {"username": data['username'], "stocks.sym": stock}
+        amount_owned = user_table.find_one(stock_filter, {"stocks.$": 1})['stocks'][0]['amount']
+        user_table.update_one(stock_filter, {"$set": {"stocks.$.amount": float(amount_owned) - float(price)}} )
+
+        # add to user funds
+        balance = user_table.find_one(filter)['funds']
+        user_table.update_one(filter, {"$set": {"funds": float(price) + float(balance)}})
+
+        # set pending flag to complete
+        user_table.update_one(
+                {"username": data['username'], "transactions.transactionNum": txNum},
+                {"$set": {"transactions.$.flag": "complete"}}
+            )
+        
+        # add the COMMIT_SELL transaction to the user table (new_transaction() auto adds to transaction_table)
+        user_table.update_one(filter, {"$push": { "transactions": new_transaction(data)}})
+
+        return 'Successfully committed.'
+  
 
 @app.route("/cancel_sell", methods=["POST"])
 def cancel_sell():
-    # user_table.insert_one({
-    #     "username":"test",
-    #     "funds":"5000.0",
-    #     "stocks":[{"sym":"AP", "amount":"10000.0"}, {"sym":"GO", "amount":"2000"}],
-    #     "transactions":[
-    #         {"timestamp":time.time(), "command":"SELL", "stockSymbol":"AP", "amount":"500"},
-    #         {"timestamp":time.time(), "command":"BUY", "stockSymbol":"AP", "amount":"500"},
-    #         {"timestamp":time.time(), "command":"ADD", "amount":"1000"}
-    #     ]
-    # })
-    # check if a SELL command was executed in the last 60 seconds
     data = request.json
+
+    # check if account exists
+    if not account_exists(data['username']):
+        return str(new_transaction(data, error="The specified user does not exist."))
+    
+    # get the most recent transaction with the pending flag
     timestamp = time.time()
-    greater_than_time = timestamp - 60
-    user_filter = {"username": data['username']}
-
-    # filter to get only commands of type SELL in the correct time
-    filter = {
-        "username": data["username"],
-        "transactions": {
-            "$elemMatch": {
-            "command": "SELL",
-            "timestamp": {
-                "$gte": greater_than_time
-                }
-            }
-        }
-    }
-
-    # create the projection
-    fields = {
-        "_id": 0,
-        "transaction": {
-            "$filter": {
-            "input": "$transactions",
-            "as":"transaction",
-            "cond": {
-                "$and": [
-                { "$eq": [ "$$transaction.command", "SELL" ] },
-                { "$gte": [ "$$transaction.timestamp", greater_than_time ] }
-                ]
-            }
-            }
-        }
-    }
-    #sell_transactions = user_table.find_one(filter)
-    # perform the aggregation pipeline to match and extract the desired fields
-    valid_sell = list(user_table.aggregate([
-            { "$match": filter },
-            { "$project": fields }
-        ]
-    ))
-
-    if len(valid_sell) > 0:
-        update_transaction = {"$push": { "transactions": {
-            "timestamp":timestamp,
-            "server":"TS1",
-            "transactionNum":data['trxNum'],
-            "command":data['cmd'],
-            }}
-        }
-        user_table.update_one(user_filter, update_transaction)
-        return "Transaction has been cancelled"
+    recent_tx = recent_transaction(data['username'], "SELL", timestamp)
+    
+    if len(recent_tx) == 0:
+        # no recent sell transactions found, create an error transaction for the transaction_table
+        return str(new_transaction(data, error="No recent SELL transactions."))
     else:
-        return "No recent sell transactions"
+        filter = {"username":data['username']}
+        txNum = recent_tx['transactionNum']
+
+        # set pending flag to cancelled
+        user_table.update_one(
+                {"username": data['username'], "transactions.transactionNum": txNum},
+                {"$set": {"transactions.$.flag": "cancelled"}}
+            )
+
+        # add the CANCEL_SELL transaction to the user table (new_transaction() auto adds to transaction_table)
+        user_table.update_one(filter, {"$push": { "transactions": new_transaction(data)}})
+
+        return 'Successfully cancelled.'
 
 
 # TODO
 @app.route("/set_sell_amount", methods=["POST"])
 def set_sell_amount():
-    pass
+    data = request.json
+    if not account_exists(data['username']):
+        new_transaction(data, error="The specified user does not exist.")
+    
 
 
 # TODO
@@ -436,6 +365,8 @@ def set_sell_trigger():
 def cancel_set_sell():
     pass
 
+
+# TODO
 @app.route("/dumplog", methods=["POST"])
 def dumplog():
     # user_table.insert_one({
@@ -484,41 +415,77 @@ def account_exists(username):
 
 def new_transaction(data, **atr):
     cmd = data['cmd']
+    
+    # default attributes
     tx = {
-        "type":"accountTransaction",
         "timestamp":time.time(),
-        "server":"TS1",
         "transactionNum":data['trxNum'],
         "command":cmd,
         "username": data['username'],
-        "amount":data['amount']
     }
+
+    if "error" in atr:
+        tx["type"] = "errorEvent"
+        tx["server"] = "TS1"
+        tx['error'] = atr["error"]
+        transaction_table.insert_one(tx)
+        return tx
+
+    if cmd == "ADD":
+        tx["type"] = "accountTransaction"
+        tx['server'] = "TS1"
+        tx["amount"] = data['amount']
+        transaction_table.insert_one(tx)
+        return tx
+
     if cmd == "BUY" or cmd == "SELL":
+        tx["type"] = "accountTransaction"
+        tx["amount"] = data['amount']
         tx["sym"] = data['sym']
         tx["flag"] = "pending"
+        transaction_table.insert_one(tx)
+        return tx
     
-    if cmd in ["COMMIT_BUY", "COMMIT_SELL", "CANCEL_BUY", "CANCEL_SELL"]:
-        tx = {
-            "type":"accountTransaction",
-            "timestamp":time.time(),
-            "server":"TS1",
-            "transactionNum":data['trxNum'],
-            "command":cmd,
-            "username": data['username']
-        }
-    
-    if "error" in atr:
-        tx = {
-            "type":"errorEvent",
-            "timestamp":time.time(),
-            "server":"TS1",
-            "transactionNum":data['trxNum'],
-            "command":cmd,
-            "username": data['username'],
-            "errorMessage":atr['error']
-        }
-    transaction_table.insert_one(tx)
+    if cmd == "COMMIT_SELL" or cmd == "CANCEL_SELL" or cmd == "COMMIT_BUY" or cmd == "CANCEL_BUY":
+        tx["type"] = "accountTransaction"
+        tx['server'] = "TS1"
+        transaction_table.insert_one(tx)
+        return tx
+
     return tx
+
+
+# returns the most recent pending transaction as a dictionary {}
+def recent_transaction(username, cmd, timestamp):
+    greater_than_time = timestamp - 60
+    # create the pipeline
+    pipeline = [
+        {"$match": {"username": username}}, # add $match stage to filter by username
+        {
+            "$project": {
+                "_id": 0,
+                "transaction": {
+                    "$filter": {
+                        "input": "$transactions",
+                        "as": "transaction",
+                        "cond": {
+                            "$and": [
+                                {"$eq": ["$$transaction.command", cmd]},
+                                {"$eq": ["$$transaction.flag", "pending"]},
+                                {"$gte": ["$$transaction.timestamp", greater_than_time]}
+                            ]
+                        }
+                    }
+                }
+            }
+        }
+    ]
+    # perform the aggregation pipeline to match and extract the desired fields
+    tx = list(user_table.aggregate(pipeline + [{"$unwind": "$transaction"}]))
+    if len(tx) > 0:
+        return tx[len(tx) - 1]['transaction']
+    return {}
+
 
 
 if __name__ =="__main__":
