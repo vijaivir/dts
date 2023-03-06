@@ -68,6 +68,7 @@ def readInputFile(fileName):
     with open(fileName, "r") as f:
         count = 0
         for line in f:
+            line = line.strip().rstrip()
             createCommand(line, count)
             count = count + 1
 

@@ -1,0 +1,535 @@
+<?xml version="1.0" ?>
+<log>
+	<accountTransaction>
+		<timestamp>1678133325.749482</timestamp>
+		<transactionNum>0</transactionNum>
+		<command>ADD</command>
+		<username>oY01WVirLr</username>
+		<server>TS1</server>
+		<amount>63511.53</amount>
+	</accountTransaction>
+	<accountTransaction>
+		<timestamp>1678133326.452</timestamp>
+		<transactionNum>2</transactionNum>
+		<command>BUY</command>
+		<username>oY01WVirLr</username>
+		<server>TS1</server>
+		<amount>276.83</amount>
+		<stockSymbol>S</stockSymbol>
+	</accountTransaction>
+	<accountTransaction>
+		<timestamp>1678133326.504201</timestamp>
+		<transactionNum>3</transactionNum>
+		<command>COMMIT_BUY</command>
+		<username>oY01WVirLr</username>
+		<server>TS1</server>
+	</accountTransaction>
+	<errorEvent>
+		<timestamp>1678133326.518219</timestamp>
+		<transactionNum>4</transactionNum>
+		<command>COMMIT_SELL</command>
+		<username>oY01WVirLr</username>
+		<server>TS1</server>
+		<errorMessage>No recent SELL transactions.</errorMessage>
+	</errorEvent>
+	<errorEvent>
+		<timestamp>1678133326.5282612</timestamp>
+		<transactionNum>5</transactionNum>
+		<command>CANCEL_SELL</command>
+		<username>oY01WVirLr</username>
+		<server>TS1</server>
+		<errorMessage>No recent SELL transactions.</errorMessage>
+	</errorEvent>
+	<accountTransaction>
+		<timestamp>1678133327.019954</timestamp>
+		<transactionNum>7</transactionNum>
+		<command>ADD</command>
+		<username>oY01WVirLr</username>
+		<server>TS1</server>
+		<amount>45016.23</amount>
+	</accountTransaction>
+	<errorEvent>
+		<timestamp>1678133327.0394921</timestamp>
+		<transactionNum>8</transactionNum>
+		<command>COMMIT_BUY</command>
+		<username>oY01WVirLr</username>
+		<server>TS1</server>
+		<errorMessage>No recent BUY transactions.</errorMessage>
+	</errorEvent>
+	<errorEvent>
+		<timestamp>1678133327.047607</timestamp>
+		<transactionNum>9</transactionNum>
+		<command>COMMIT_BUY</command>
+		<username>oY01WVirLr</username>
+		<server>TS1</server>
+		<errorMessage>No recent BUY transactions.</errorMessage>
+	</errorEvent>
+	<accountTransaction>
+		<timestamp>1678133327.056407</timestamp>
+		<transactionNum>11</transactionNum>
+		<command>ADD</command>
+		<username>oY01WVirLr</username>
+		<server>TS1</server>
+		<amount>71879.98</amount>
+	</accountTransaction>
+	<errorEvent>
+		<timestamp>1678133327.084199</timestamp>
+		<transactionNum>13</transactionNum>
+		<command>COMMIT_BUY</command>
+		<username>oY01WVirLr</username>
+		<server>TS1</server>
+		<errorMessage>No recent BUY transactions.</errorMessage>
+	</errorEvent>
+	<errorEvent>
+		<timestamp>1678133327.09282</timestamp>
+		<transactionNum>14</transactionNum>
+		<command>COMMIT_BUY</command>
+		<username>oY01WVirLr</username>
+		<server>TS1</server>
+		<errorMessage>No recent BUY transactions.</errorMessage>
+	</errorEvent>
+	<errorEvent>
+		<timestamp>1678133327.0991628</timestamp>
+		<transactionNum>15</transactionNum>
+		<command>COMMIT_BUY</command>
+		<username>oY01WVirLr</username>
+		<server>TS1</server>
+		<errorMessage>No recent BUY transactions.</errorMessage>
+	</errorEvent>
+	<errorEvent>
+		<timestamp>1678133327.106775</timestamp>
+		<transactionNum>16</transactionNum>
+		<command>COMMIT_SELL</command>
+		<username>oY01WVirLr</username>
+		<server>TS1</server>
+		<errorMessage>No recent SELL transactions.</errorMessage>
+	</errorEvent>
+	<accountTransaction>
+		<timestamp>1678133327.109637</timestamp>
+		<transactionNum>17</transactionNum>
+		<command>ADD</command>
+		<username>oY01WVirLr</username>
+		<server>TS1</server>
+		<amount>74315.15</amount>
+	</accountTransaction>
+	<errorEvent>
+		<timestamp>1678133327.1191978</timestamp>
+		<transactionNum>18</transactionNum>
+		<command>CANCEL_BUY</command>
+		<username>oY01WVirLr</username>
+		<server>TS1</server>
+		<errorMessage>No recent BUY transactions.</errorMessage>
+	</errorEvent>
+	<errorEvent>
+		<timestamp>1678133327.126326</timestamp>
+		<transactionNum>19</transactionNum>
+		<command>CANCEL_SET_BUY</command>
+		<username>oY01WVirLr</username>
+		<server>TS1</server>
+		<errorMessage>No prereq SET_BUY_AMOUNT</errorMessage>
+	</errorEvent>
+	<errorEvent>
+		<timestamp>1678133327.143318</timestamp>
+		<transactionNum>20</transactionNum>
+		<command>COMMIT_SELL</command>
+		<username>oY01WVirLr</username>
+		<server>TS1</server>
+		<errorMessage>No recent SELL transactions.</errorMessage>
+	</errorEvent>
+	<errorEvent>
+		<timestamp>1678133327.155754</timestamp>
+		<transactionNum>22</transactionNum>
+		<command>COMMIT_BUY</command>
+		<username>oY01WVirLr</username>
+		<server>TS1</server>
+		<errorMessage>No recent BUY transactions.</errorMessage>
+	</errorEvent>
+	<errorEvent>
+		<timestamp>1678133327.161411</timestamp>
+		<transactionNum>23</transactionNum>
+		<command>COMMIT_SELL</command>
+		<username>oY01WVirLr</username>
+		<server>TS1</server>
+		<errorMessage>No recent SELL transactions.</errorMessage>
+	</errorEvent>
+	<errorEvent>
+		<timestamp>1678133327.173755</timestamp>
+		<transactionNum>25</transactionNum>
+		<command>COMMIT_BUY</command>
+		<username>oY01WVirLr</username>
+		<server>TS1</server>
+		<errorMessage>No recent BUY transactions.</errorMessage>
+	</errorEvent>
+	<errorEvent>
+		<timestamp>1678133327.1897569</timestamp>
+		<transactionNum>27</transactionNum>
+		<command>CANCEL_SELL</command>
+		<username>oY01WVirLr</username>
+		<server>TS1</server>
+		<errorMessage>No recent SELL transactions.</errorMessage>
+	</errorEvent>
+	<errorEvent>
+		<timestamp>1678133327.20659</timestamp>
+		<transactionNum>30</transactionNum>
+		<command>SELL</command>
+		<username>oY01WVirLr</username>
+		<server>TS1</server>
+		<errorMessage>Insufficient stock amount.</errorMessage>
+	</errorEvent>
+	<errorEvent>
+		<timestamp>1678133327.211858</timestamp>
+		<transactionNum>31</transactionNum>
+		<command>COMMIT_SELL</command>
+		<username>oY01WVirLr</username>
+		<server>TS1</server>
+		<errorMessage>No recent SELL transactions.</errorMessage>
+	</errorEvent>
+	<errorEvent>
+		<timestamp>1678133327.2154088</timestamp>
+		<transactionNum>32</transactionNum>
+		<command>COMMIT_BUY</command>
+		<username>oY01WVirLr</username>
+		<server>TS1</server>
+		<errorMessage>No recent BUY transactions.</errorMessage>
+	</errorEvent>
+	<accountTransaction>
+		<timestamp>1678133327.217524</timestamp>
+		<transactionNum>33</transactionNum>
+		<command>CANCEL_SET_SELL</command>
+		<username>oY01WVirLr</username>
+		<server>TS1</server>
+	</accountTransaction>
+	<errorEvent>
+		<timestamp>1678133327.223222</timestamp>
+		<transactionNum>34</transactionNum>
+		<command>COMMIT_SELL</command>
+		<username>oY01WVirLr</username>
+		<server>TS1</server>
+		<errorMessage>No recent SELL transactions.</errorMessage>
+	</errorEvent>
+	<errorEvent>
+		<timestamp>1678133327.237501</timestamp>
+		<transactionNum>35</transactionNum>
+		<command>CANCEL_BUY</command>
+		<username>oY01WVirLr</username>
+		<server>TS1</server>
+		<errorMessage>No recent BUY transactions.</errorMessage>
+	</errorEvent>
+	<errorEvent>
+		<timestamp>1678133327.247821</timestamp>
+		<transactionNum>36</transactionNum>
+		<command>CANCEL_SELL</command>
+		<username>oY01WVirLr</username>
+		<server>TS1</server>
+		<errorMessage>No recent SELL transactions.</errorMessage>
+	</errorEvent>
+	<errorEvent>
+		<timestamp>1678133327.897911</timestamp>
+		<transactionNum>40</transactionNum>
+		<command>COMMIT_BUY</command>
+		<username>oY01WVirLr</username>
+		<server>TS1</server>
+		<errorMessage>No recent BUY transactions.</errorMessage>
+	</errorEvent>
+	<errorEvent>
+		<timestamp>1678133327.9378219</timestamp>
+		<transactionNum>43</transactionNum>
+		<command>COMMIT_BUY</command>
+		<username>oY01WVirLr</username>
+		<server>TS1</server>
+		<errorMessage>No recent BUY transactions.</errorMessage>
+	</errorEvent>
+	<errorEvent>
+		<timestamp>1678133327.958515</timestamp>
+		<transactionNum>45</transactionNum>
+		<command>COMMIT_BUY</command>
+		<username>oY01WVirLr</username>
+		<server>TS1</server>
+		<errorMessage>No recent BUY transactions.</errorMessage>
+	</errorEvent>
+	<accountTransaction>
+		<timestamp>1678133327.969383</timestamp>
+		<transactionNum>47</transactionNum>
+		<command>ADD</command>
+		<username>oY01WVirLr</username>
+		<server>TS1</server>
+		<amount>52802.93</amount>
+	</accountTransaction>
+	<errorEvent>
+		<timestamp>1678133327.990266</timestamp>
+		<transactionNum>49</transactionNum>
+		<command>SET_SELL_TRIGGER</command>
+		<username>oY01WVirLr</username>
+		<server>TS1</server>
+		<errorMessage>Set sell amount first.</errorMessage>
+	</errorEvent>
+	<errorEvent>
+		<timestamp>1678133328.006579</timestamp>
+		<transactionNum>51</transactionNum>
+		<command>COMMIT_BUY</command>
+		<username>oY01WVirLr</username>
+		<server>TS1</server>
+		<errorMessage>No recent BUY transactions.</errorMessage>
+	</errorEvent>
+	<errorEvent>
+		<timestamp>1678133328.01421</timestamp>
+		<transactionNum>52</transactionNum>
+		<command>CANCEL_BUY</command>
+		<username>oY01WVirLr</username>
+		<server>TS1</server>
+		<errorMessage>No recent BUY transactions.</errorMessage>
+	</errorEvent>
+	<errorEvent>
+		<timestamp>1678133328.022479</timestamp>
+		<transactionNum>53</transactionNum>
+		<command>COMMIT_BUY</command>
+		<username>oY01WVirLr</username>
+		<server>TS1</server>
+		<errorMessage>No recent BUY transactions.</errorMessage>
+	</errorEvent>
+	<errorEvent>
+		<timestamp>1678133328.033008</timestamp>
+		<transactionNum>54</transactionNum>
+		<command>COMMIT_SELL</command>
+		<username>oY01WVirLr</username>
+		<server>TS1</server>
+		<errorMessage>No recent SELL transactions.</errorMessage>
+	</errorEvent>
+	<errorEvent>
+		<timestamp>1678133328.039863</timestamp>
+		<transactionNum>55</transactionNum>
+		<command>CANCEL_SET_BUY</command>
+		<username>oY01WVirLr</username>
+		<server>TS1</server>
+		<errorMessage>No prereq SET_BUY_AMOUNT</errorMessage>
+	</errorEvent>
+	<errorEvent>
+		<timestamp>1678133328.045981</timestamp>
+		<transactionNum>56</transactionNum>
+		<command>CANCEL_SET_BUY</command>
+		<username>oY01WVirLr</username>
+		<server>TS1</server>
+		<errorMessage>No prereq SET_BUY_AMOUNT</errorMessage>
+	</errorEvent>
+	<errorEvent>
+		<timestamp>1678133329.0972009</timestamp>
+		<transactionNum>60</transactionNum>
+		<command>SELL</command>
+		<username>oY01WVirLr</username>
+		<server>TS1</server>
+		<errorMessage>Insufficient stock amount.</errorMessage>
+	</errorEvent>
+	<errorEvent>
+		<timestamp>1678133329.113427</timestamp>
+		<transactionNum>61</transactionNum>
+		<command>SET_SELL_TRIGGER</command>
+		<username>oY01WVirLr</username>
+		<server>TS1</server>
+		<errorMessage>Set sell amount first.</errorMessage>
+	</errorEvent>
+	<errorEvent>
+		<timestamp>1678133329.13948</timestamp>
+		<transactionNum>63</transactionNum>
+		<command>COMMIT_BUY</command>
+		<username>oY01WVirLr</username>
+		<server>TS1</server>
+		<errorMessage>No recent BUY transactions.</errorMessage>
+	</errorEvent>
+	<errorEvent>
+		<timestamp>1678133329.145395</timestamp>
+		<transactionNum>64</transactionNum>
+		<command>COMMIT_BUY</command>
+		<username>oY01WVirLr</username>
+		<server>TS1</server>
+		<errorMessage>No recent BUY transactions.</errorMessage>
+	</errorEvent>
+	<errorEvent>
+		<timestamp>1678133329.1702778</timestamp>
+		<transactionNum>66</transactionNum>
+		<command>CANCEL_BUY</command>
+		<username>oY01WVirLr</username>
+		<server>TS1</server>
+		<errorMessage>No recent BUY transactions.</errorMessage>
+	</errorEvent>
+	<accountTransaction>
+		<timestamp>1678133329.1827688</timestamp>
+		<transactionNum>67</transactionNum>
+		<command>SET_SELL_AMOUNT</command>
+		<username>oY01WVirLr</username>
+		<server>TS1</server>
+		<amount>216.83</amount>
+		<stockSymbol>S</stockSymbol>
+	</accountTransaction>
+	<accountTransaction>
+		<timestamp>1678133329.1923451</timestamp>
+		<transactionNum>68</transactionNum>
+		<command>CANCEL_SET_SELL</command>
+		<username>oY01WVirLr</username>
+		<server>TS1</server>
+	</accountTransaction>
+	<errorEvent>
+		<timestamp>1678133329.216939</timestamp>
+		<transactionNum>70</transactionNum>
+		<command>CANCEL_BUY</command>
+		<username>oY01WVirLr</username>
+		<server>TS1</server>
+		<errorMessage>No recent BUY transactions.</errorMessage>
+	</errorEvent>
+	<accountTransaction>
+		<timestamp>1678133329.226409</timestamp>
+		<transactionNum>71</transactionNum>
+		<command>SELL</command>
+		<username>oY01WVirLr</username>
+		<server>TS1</server>
+		<amount>41.47</amount>
+		<stockSymbol>S</stockSymbol>
+	</accountTransaction>
+	<accountTransaction>
+		<timestamp>1678133329.249669</timestamp>
+		<transactionNum>73</transactionNum>
+		<command>COMMIT_SELL</command>
+		<username>oY01WVirLr</username>
+		<server>TS1</server>
+	</accountTransaction>
+	<errorEvent>
+		<timestamp>1678133329.257896</timestamp>
+		<transactionNum>74</transactionNum>
+		<command>CANCEL_SET_BUY</command>
+		<username>oY01WVirLr</username>
+		<server>TS1</server>
+		<errorMessage>No prereq SET_BUY_AMOUNT</errorMessage>
+	</errorEvent>
+	<accountTransaction>
+		<timestamp>1678133329.268713</timestamp>
+		<transactionNum>75</transactionNum>
+		<command>CANCEL_SET_SELL</command>
+		<username>oY01WVirLr</username>
+		<server>TS1</server>
+	</accountTransaction>
+	<errorEvent>
+		<timestamp>1678133329.283458</timestamp>
+		<transactionNum>77</transactionNum>
+		<command>CANCEL_SET_BUY</command>
+		<username>oY01WVirLr</username>
+		<server>TS1</server>
+		<errorMessage>No prereq SET_BUY_AMOUNT</errorMessage>
+	</errorEvent>
+	<accountTransaction>
+		<timestamp>1678133329.287211</timestamp>
+		<transactionNum>78</transactionNum>
+		<command>ADD</command>
+		<username>oY01WVirLr</username>
+		<server>TS1</server>
+		<amount>87863.73</amount>
+	</accountTransaction>
+	<errorEvent>
+		<timestamp>1678133329.837991</timestamp>
+		<transactionNum>81</transactionNum>
+		<command>COMMIT_BUY</command>
+		<username>oY01WVirLr</username>
+		<server>TS1</server>
+		<errorMessage>No recent BUY transactions.</errorMessage>
+	</errorEvent>
+	<accountTransaction>
+		<timestamp>1678133329.8649201</timestamp>
+		<transactionNum>82</transactionNum>
+		<command>SELL</command>
+		<username>oY01WVirLr</username>
+		<server>TS1</server>
+		<amount>213.24</amount>
+		<stockSymbol>S</stockSymbol>
+	</accountTransaction>
+	<accountTransaction>
+		<timestamp>1678133329.8923671</timestamp>
+		<transactionNum>84</transactionNum>
+		<command>CANCEL_SELL</command>
+		<username>oY01WVirLr</username>
+		<server>TS1</server>
+	</accountTransaction>
+	<errorEvent>
+		<timestamp>1678133329.9185112</timestamp>
+		<transactionNum>86</transactionNum>
+		<command>COMMIT_BUY</command>
+		<username>oY01WVirLr</username>
+		<server>TS1</server>
+		<errorMessage>No recent BUY transactions.</errorMessage>
+	</errorEvent>
+	<errorEvent>
+		<timestamp>1678133329.941309</timestamp>
+		<transactionNum>88</transactionNum>
+		<command>COMMIT_BUY</command>
+		<username>oY01WVirLr</username>
+		<server>TS1</server>
+		<errorMessage>No recent BUY transactions.</errorMessage>
+	</errorEvent>
+	<errorEvent>
+		<timestamp>1678133329.946954</timestamp>
+		<transactionNum>89</transactionNum>
+		<command>SELL</command>
+		<username>oY01WVirLr</username>
+		<server>TS1</server>
+		<errorMessage>Insufficient stock amount.</errorMessage>
+	</errorEvent>
+	<errorEvent>
+		<timestamp>1678133329.954834</timestamp>
+		<transactionNum>90</transactionNum>
+		<command>CANCEL_SELL</command>
+		<username>oY01WVirLr</username>
+		<server>TS1</server>
+		<errorMessage>No recent SELL transactions.</errorMessage>
+	</errorEvent>
+	<errorEvent>
+		<timestamp>1678133329.9616818</timestamp>
+		<transactionNum>91</transactionNum>
+		<command>COMMIT_BUY</command>
+		<username>oY01WVirLr</username>
+		<server>TS1</server>
+		<errorMessage>No recent BUY transactions.</errorMessage>
+	</errorEvent>
+	<accountTransaction>
+		<timestamp>1678133329.965139</timestamp>
+		<transactionNum>92</transactionNum>
+		<command>CANCEL_SET_SELL</command>
+		<username>oY01WVirLr</username>
+		<server>TS1</server>
+	</accountTransaction>
+	<errorEvent>
+		<timestamp>1678133329.972683</timestamp>
+		<transactionNum>93</transactionNum>
+		<command>CANCEL_SELL</command>
+		<username>oY01WVirLr</username>
+		<server>TS1</server>
+		<errorMessage>No recent SELL transactions.</errorMessage>
+	</errorEvent>
+	<accountTransaction>
+		<timestamp>1678133329.979965</timestamp>
+		<transactionNum>94</transactionNum>
+		<command>CANCEL_SET_SELL</command>
+		<username>oY01WVirLr</username>
+		<server>TS1</server>
+	</accountTransaction>
+	<errorEvent>
+		<timestamp>1678133329.995977</timestamp>
+		<transactionNum>96</transactionNum>
+		<command>COMMIT_BUY</command>
+		<username>oY01WVirLr</username>
+		<server>TS1</server>
+		<errorMessage>No recent BUY transactions.</errorMessage>
+	</errorEvent>
+	<errorEvent>
+		<timestamp>1678133330.006321</timestamp>
+		<transactionNum>97</transactionNum>
+		<command>CANCEL_BUY</command>
+		<username>oY01WVirLr</username>
+		<server>TS1</server>
+		<errorMessage>No recent BUY transactions.</errorMessage>
+	</errorEvent>
+	<errorEvent>
+		<timestamp>1678133330.0264251</timestamp>
+		<transactionNum>98</transactionNum>
+		<command>SELL</command>
+		<username>oY01WVirLr</username>
+		<server>TS1</server>
+		<errorMessage>Insufficient stock amount.</errorMessage>
+	</errorEvent>
+</log>
