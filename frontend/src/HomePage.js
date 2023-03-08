@@ -1,6 +1,6 @@
 import navBar from "./components/NavBar";
 import React, {useState} from "react";
-import Login from "./components/Login";
+import Login from "./LoginPage";
 import TradingPage from './TradingPage'
 
 function HomePage() {
@@ -10,8 +10,7 @@ function HomePage() {
 
     return(
         <div>
-            {navBar()}
-            {isLoggedIn ? <><TradingPage username={username}></TradingPage></> : <Login setIsLoggedIn={setIsLoggedIn} setUsername={setUsername}></Login>}
+            {isLoggedIn ? <><TradingPage username={username} isLoggedIn={isLoggedIn}></TradingPage></> : <Login setIsLoggedIn={setIsLoggedIn} setUsername={setUsername}></Login>}
         </div>
     );
 

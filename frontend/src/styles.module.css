@@ -1,0 +1,15 @@
+.panel{
+    border: 1px solid black;
+    width: 50%;
+    height: auto;
+    margin: 1%;
+}
+
+.container{
+    display: flex;
+}
+
+.userNav{
+    display: flex;
+    justify-content: right;
+}

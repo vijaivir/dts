@@ -3,6 +3,7 @@ import { Form } from 'react-bootstrap';
 import { Container } from 'react-bootstrap';
 import { Button } from 'react-bootstrap';
 import React, { useState } from 'react';
+import NavBar from './components/NavBar';
 
 function LoginPage(props) {
 
@@ -17,6 +18,7 @@ function LoginPage(props) {
  
   return (
     <div>
+      <NavBar setIsLoggedIn={false}></NavBar>
       <div>
         <Container>
           <Form>

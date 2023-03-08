@@ -1,4 +1,6 @@
 import CollapsibleList from "./components/CollapsibleList";
+import styles from "./styles.module.css"
+import NavBar from "./components/NavBar";
 
 function TradingPage(props) {
 
@@ -6,10 +8,15 @@ function TradingPage(props) {
 
     return(
         <div>
-            <div>
-                {props.username}
-                <CollapsibleList items={demoList}></CollapsibleList>
-            </div>
+            <NavBar username={props.username} isLoggedIn={props.isLoggedIn} amount={'1000$'}></NavBar>
+            <div className={styles.container}>
+                <div className={styles.panel}>
+                    yayay
+                </div>   
+                <div className={styles.panel}>
+                    yayay
+                </div>   
+            </div> 
         </div>
     );
 
