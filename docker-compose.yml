@@ -5,3 +5,13 @@ services:
     container_name: mongo_database
     ports:
       - "27017:27017"
+  buy:
+    build: ./backend/buy
+  sell:
+    build: ./backend/sell
+  nginx:
+    image: nginx
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
