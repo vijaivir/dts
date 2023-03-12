@@ -5,3 +5,10 @@ services:
     container_name: mongo_database
     ports:
       - "27017:27017"
+
+  backend:
+    build:
+      context: ./backend
+    container_name: backend_services
+    ports:
+      - "5000:5000"
