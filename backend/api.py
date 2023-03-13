@@ -6,7 +6,7 @@ import time
 import requests
 
 # container name for mongo db
-client = MongoClient("mongodb://mongo_database", 27017)
+client = MongoClient()
 
 db = client.user_database
 # Create two collections (user_table, transaction_table)
@@ -296,8 +296,8 @@ def set_buy_trigger():
     
     trigger_price = data['amount']
     reserved_filter = {"username": data['username'], "reserved_buy.sym": data['sym']}
-    reserved_item = user_table.find_one(reserved_filter, {"reserved_buy.$": 1})
-    user_table.update_one(reserved_item, {"$push": {"trigger_price": trigger_price}} )
+    user_table.update_one(reserved_filter, {"$set": {"reserved_buy.$.trigger_price": trigger_price}})
+
     tx = new_transaction(data)
     new_tx = {"$push": { "transactions": tx}}
     user_table.update_one(filter, new_tx)
