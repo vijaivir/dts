@@ -6,8 +6,8 @@ import time
 import requests
 
 # container name for mongo db
-# client = MongoClient("mongodb://mongo_database", 27017)
-client = MongoClient()
+client = MongoClient("mongodb://mongo_database", 27017)
+#client = MongoClient()
 
 db = client.user_database
 # Create two collections (user_table, transaction_table)
@@ -37,14 +37,14 @@ Database Structure:
         {
             "sym":"",
             "amount":"",
-            "trigger_price":""
+            "trigger":""
         }
     ],
     "reserved_sell":[
         {
             "sym":"",
             "amount":"",
-            "trigger_price":""
+            "trigger":""
         }
     ],
     "transactions":[
@@ -295,9 +295,9 @@ def set_buy_trigger():
         new_transaction(data, error="No prereq SET_BUY_AMOUNT")
         return f"No prereq SET_BUY_AMOUNT for stock {data['sym']}"
     
-    trigger_price = data['amount']
+    trigger = data['amount']
     reserved_filter = {"username": data['username'], "reserved_buy.sym": data['sym']}
-    user_table.update_one(reserved_filter, {"$set": {"reserved_buy.$.trigger_price": trigger_price}})
+    user_table.update_one(reserved_filter, {"$set": {"reserved_buy.$.trigger": trigger}})
 
     tx = new_transaction(data)
     new_tx = {"$push": { "transactions": tx}}
@@ -389,11 +389,16 @@ def commit_sell():
         stock = recent_tx['sym']
         price = recent_tx['amount']
         txNum = recent_tx['transactionNum']
+        new_share = recent_tx['share']
 
         # subtract stock amount
         stock_filter = {"username": data['username'], "stocks.sym": stock}
         amount_owned = user_table.find_one(stock_filter, {"stocks.$": 1})['stocks'][0]['amount']
-        user_table.update_one(stock_filter, {"$set": {"stocks.$.amount": float(amount_owned) - float(price)}} )
+
+        # subtract share
+        share = user_table.find_one(stock_filter, {"stocks.$": 1})['stocks'][0]['share']
+        user_table.update_one(stock_filter, {"$set": {"stocks.$.amount": float(amount_owned) - float(price), 
+                                                      "stocks.$.share": float(share) - float(new_share)}} )
 
         # add to user funds
         balance = user_table.find_one(filter)['funds']
@@ -443,7 +448,6 @@ def cancel_sell():
 
 
 
-#TODO
 @app.route("/set_sell_amount", methods=["POST"])
 def set_sell_amount():
     data = request.json
@@ -458,17 +462,14 @@ def set_sell_amount():
     if not valid_stock:
         new_transaction(data, error="Not enough stock.")
         return "Not enough stock owned to SET_SELL_AMOUNT"
-    
-    # remove amount from the stock
 
     # add to reserved sell
     user_table.update_one(filter, {"$push": {"transactions": new_transaction(data), 
                                              "reserved_sell": {'sym':data['sym'], 'amount':data['amount']}}})
-    return 'successfully set sell amount'
+    return 'Set Sell Amount'
 
 
 
-#TODO
 @app.route("/set_sell_trigger", methods=["POST"])
 def set_sell_trigger():
     data = request.json
@@ -485,19 +486,66 @@ def set_sell_trigger():
         return "Set sell amount first."
     
     user_table.update_one({'username': data['username'], 'reserved_sell.sym': data['sym']}, {'$set': {'reserved_sell.$.trigger': data['amount']}})
-    return 'successfully set sell trigger'
+
+    # subtract stock amount and share from owned stock
+    sell_point = data['amount']
+    stock_filter = {"username": data['username'], "stocks.sym": data['sym']}
+    reserved_filter = {"username": data['username'], "reserved_sell.sym": data['sym']}
+    amount_to_sell = user_table.find_one(reserved_filter, {"reserved_sell.$": 1})['reserved_sell'][0]['amount']
+    amount_owned = user_table.find_one(stock_filter, {"stocks.$": 1})['stocks'][0]['amount']
+    share_owned = user_table.find_one(stock_filter, {"stocks.$": 1})['stocks'][0]['share']
+    share_subtracted = float(amount_to_sell) // float(sell_point)
+
+    # update user stocks[]
+    user_table.update_one(stock_filter, {"$set": {"stocks.$.amount": float(amount_owned) - float(amount_to_sell), 
+                                                  "stocks.$.share": float(share_owned) - float(share_subtracted)}} )
+
+    # add trigger to reserved_sell
+    user_table.update_one(reserved_filter, {"$set": {"reserved_sell.$.trigger": sell_point}})
+
+    # add to transactions
+    user_table.update_one(filter, {"$push": { "transactions": new_transaction(data)}})
+    return "Set Sell Trigger"
 
 
 
-#TODO
 @app.route("/cancel_set_sell", methods=["POST"])
 def cancel_set_sell():
     data = request.json
-    new_transaction(data)
-    return 'successfully cancelled'
+
+    if not account_exists(data['username']):
+        new_transaction(data, error="The specified user does not exist.")
+    
+    filter = {"username":data['username']}
+    reserved_filter = {"username": data['username'], "reserved_sell.sym": data['sym']}
+
+    valid_reserve = user_table.find_one(reserved_filter, {"reserved_sell.$": 1})
+
+    if not valid_reserve:
+        new_transaction(data, error="No prereq SET_SELL_AMOUNT")
+        return f"No prereq SET_SELL_AMOUNT for stock {data['sym']}"
+    
+    # add back stock amount and share to owned stock
+    stock_filter = {"username": data['username'], "stocks.sym": data['sym']}
+    amount_to_sell = user_table.find_one(reserved_filter, {"reserved_sell.$": 1})['reserved_sell'][0]['amount']
+    trigger = user_table.find_one(reserved_filter, {"reserved_sell.$": 1})['reserved_sell'][0]['trigger']
+    amount_owned = user_table.find_one(stock_filter, {"stocks.$": 1})['stocks'][0]['amount']
+    share_owned = user_table.find_one(stock_filter, {"stocks.$": 1})['stocks'][0]['share']
+    share_subtracted = float(amount_to_sell) // float(trigger)
+
+    # update user stocks
+    user_table.update_one(stock_filter, {"$set": {"stocks.$.amount": float(amount_owned) + float(amount_to_sell), 
+                                                  "stocks.$.share": float(share_owned) + float(share_subtracted)}} )
+
+    # remove from reserved_sell
+    user_table.update_one(reserved_filter, {"$pull": {"reserved_sell": {"sym": data['sym']}}})
+    
+    # add a transaction
+    user_table.update_one(filter, {"$push": { "transactions": new_transaction(data)}})
+
+    return 'Cancelled Set Sell'
 
 
-# TODO
 @app.route("/dumplog", methods=["POST"])
 def dumplog():
     data = request.json
@@ -712,4 +760,4 @@ def recent_transaction(username, cmd, timestamp):
 
 
 if __name__ =="__main__":
-    app.run(host="0.0.0.0", debug=True, port=5001)
+    app.run(host="0.0.0.0", debug=True)
