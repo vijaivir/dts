@@ -1,4 +1,4 @@
-from flask import Flask, request
+from flask import Flask, request, jsonify
 from pymongo import MongoClient
 import xml.etree.ElementTree as ET
 import xml.dom.minidom
@@ -7,6 +7,7 @@ import requests
 
 # container name for mongo db
 client = MongoClient("mongodb://mongo_database", 27017)
+#client = MongoClient()
 
 db = client.user_database
 # Create two collections (user_table, transaction_table)
@@ -16,10 +17,22 @@ transaction_table = db.transaction_table
 app = Flask(__name__)
 
 """
+Future work:
+TODO functionality to change flag from pending - cancelled for expired transcations
+"""
+
+"""
 Database Structure:
 {
     "username":"",
     "funds":"",
+    "stocks":[
+        {
+            "sym":"",
+            "amount":"",
+            "shares":, 
+        }
+    ],
     "reserved_buy":[
         {
             "sym":"",
@@ -32,12 +45,6 @@ Database Structure:
             "sym":"",
             "amount":"",
             "trigger_price":""
-        }
-    ],
-    "stocks":[
-        {
-            "sym":"",
-            "amount":""
         }
     ],
     "transactions":[
@@ -60,10 +67,35 @@ Database Structure:
 
 @app.route("/quote", methods=["POST"])
 def get_quote():
+    data = request.json
+    quote_price = quote(data['sym'], data['username'])
+    return quote_price
+
+
+def quote(sym, username):
+    filter = {"username":username}
     quote_price = requests.get('http://fe26-2604-3d08-2679-2000-c58a-51ec-8599-b312.ngrok.io/quote')
+    # quote_price = requests.get('http://localhost:5000/quote')
     res = quote_price.json()
-    price = res['price']
-    return price
+    res['username'] = username
+    res['cmd'] = "QUOTE"
+    res['sym'] = sym
+    res['quoteServerTime'] = time.time()
+    tx = new_transaction(res)
+    user_table.update_one(filter, {"$push": {"transactions": tx}})
+    update_stocks(sym, res['price'], username)
+    return res
+
+
+# Called after quote(): updates stock amount based on current price
+# also executes any triggers
+def update_stocks(sym, price, username):
+    # if the user owns stock (sym) update the amount based on their shares
+
+    # check reserved_buy for any triggers and execute
+
+    # check reserved_sell for any triggers and execute
+    pass
 
 
 @app.route("/add", methods=["POST"])
@@ -102,22 +134,30 @@ def display_summary():
 @app.route("/buy", methods=["POST"])
 def buy():
     data = request.json
+    filter = {"username":data['username']}
     # check if account exists
     if not account_exists(data['username']):
         return str(new_transaction(data, error="The specified user does not exist."))
 
-    filter = {"username":data['username']}
-    funds = user_table.find_one(filter)['funds']
-
     # check if sufficient funds to buy
-    if funds >= data['amount']:
-        #add to transactions[]
-        tx = new_transaction(data)
-        update = {"$push": {"transactions": tx}}
-        user_table.update_one(filter, update)   
-        return 'Added to transactions. 60 seconds to COMMIT'
-    # else create an error transaction for the transaction_table
-    return str(new_transaction(data, error="Insufficient funds."))
+    funds = user_table.find_one(filter)['funds']
+    if float(funds) < float(data['amount']):
+        # create an error transaction for the transaction_table
+        return str(new_transaction(data, error="Insufficient funds."))
+    
+    # get the current stock price
+    stock_quote = quote(data['sym'], data['username'])
+    stock_price = stock_quote['price']
+
+    # share that can be bought with the specified price rounded to the nearest whole number
+    share = float(data['amount']) // float(stock_price)
+    data['share'] = share
+
+    #add to transactions[]
+    tx = new_transaction(data)
+    update = {"$push": {"transactions": tx}}
+    user_table.update_one(filter, update)   
+    return 'Added to transactions. 60 seconds to COMMIT'
 
 
 
@@ -141,10 +181,11 @@ def commit_buy():
         stock = recent_tx['sym']
         price = recent_tx['amount']
         txNum = recent_tx['transactionNum']
+        share = recent_tx['share']
 
         # subtract from user funds
-        balance = user_table.find_one(filter)['funds']
-        user_table.update_one(filter, {"$set": {"funds": float(balance) - float(price)}})
+        funds = user_table.find_one(filter)['funds']
+        user_table.update_one(filter, {"$set": {"funds": float(funds) - float(price)}})
 
         # check if user owns the stock already
         stock_filter = {"username": data['username'], "stocks.sym": stock}
@@ -152,10 +193,12 @@ def commit_buy():
         if stock_owned:
             # update stock
             amount_owned = stock_owned['stocks'][0]['amount']
+            share_owned = stock_owned['stocks'][0]['share']
             user_table.update_one(stock_filter, {"$set": {"stocks.$.amount": float(amount_owned) + float(price)}} )
+            user_table.update_one(stock_filter, {"$set": {"stocks.$.share": float(share_owned) + float(share)}} )
         else:
             # create a new stock
-            user_table.update_one(filter, {"$push": { "stocks": {'sym':stock, 'amount':price}}})
+            user_table.update_one(filter, {"$push": { "stocks": {'sym':stock, 'amount':price, 'share':share}}})
         
         # set pending flag to complete
         user_table.update_one(
@@ -195,7 +238,7 @@ def cancel_buy():
                 {"$set": {"transactions.$.flag": "cancelled"}}
             )
 
-        # add the CANCEL_SELL transaction to the user table (new_transaction() auto adds to transaction_table)
+        # add the CANCEL_BUY transaction to the user table (new_transaction() auto adds to transaction_table)
         user_table.update_one(filter, {"$push": { "transactions": new_transaction(data)}})
 
         return 'Successfully cancelled.'
@@ -211,7 +254,7 @@ def set_buy_amount():
     reserve_amount = data['amount']
     # check if the user has the necessary funds
     balance = user_table.find_one(filter)["funds"]
-    if balance < reserve_amount:
+    if float(balance) < float(reserve_amount):
         new_transaction(data, error="Insufficient Funds.")
         return "Insufficient Funds"
 
@@ -227,13 +270,12 @@ def set_buy_amount():
     tx = new_transaction(data)
     new_tx = {"$push": { "transactions": tx}}
     user_table.update_one(filter, new_tx)
-    return "Set Buy Trigger"
+    return "Set Buy Amount"
 
 
 
 @app.route("/set_buy_trigger", methods=["POST"])
 def set_buy_trigger():
-    # Just adds a buy trigger, not currently implemented to actually go through
     data = request.json
     filter = {"username":data['username']}
     if not account_exists(data['username']):
@@ -251,8 +293,12 @@ def set_buy_trigger():
 
     if not valid_set_buy:
         new_transaction(data, error="No prereq SET_BUY_AMOUNT")
-        return f"No prereq SET_BUY_AMOUNT for stock {data['sym']} "
+        return f"No prereq SET_BUY_AMOUNT for stock {data['sym']}"
     
+    trigger_price = data['amount']
+    reserved_filter = {"username": data['username'], "reserved_buy.sym": data['sym']}
+    user_table.update_one(reserved_filter, {"$set": {"reserved_buy.$.trigger_price": trigger_price}})
+
     tx = new_transaction(data)
     new_tx = {"$push": { "transactions": tx}}
     user_table.update_one(filter, new_tx)
@@ -307,7 +353,23 @@ def sell():
         return str(new_transaction(data, error="The specified user does not exist."))
 
     filter = {"username":data['username']}
+
+    # get quote
+    quote_price = requests.get('http://localhost:5000/quote')
+    t2 = time.time()
+    res = quote_price.json()
+    res['trxNum'] = data['trxNum']
+    res['username'] = data['username']
+    res['cmd'] = "QUOTE"
+    res['sym'] = data['sym']
+    res['cryptokey'] = '1wb2DqmVTnPYxw6fNtql5qKYkEQ'
+    res['quoteServerTime'] = t2
+    res['flag'] = ''
+    qtx = new_transaction(res)
+    user_table.update_one(filter, {"$push": {"transactions": qtx}} )
+
     user_stocks = user_table.find_one(filter)['stocks']
+
     # check if owned stock is >= amount being sold
     valid_transaction = False
     for x in user_stocks:
@@ -522,7 +584,16 @@ def dumplog():
                 ET.SubElement(transaction, "errorMessage").text = str(t["error"])
 
             elif t['type'] == 'quoteServer':
-                print('quote server event')
+                transaction = ET.SubElement(root, "quoteServer")
+                ET.SubElement(transaction, "timestamp").text = str((t["timestamp"]))
+                ET.SubElement(transaction, "transactionNum").text = str((t["transactionNum"]))
+                ET.SubElement(transaction, "username").text = t["username"]
+                ET.SubElement(transaction, "server").text = t["server"]
+                ET.SubElement(transaction, "stockSymbol").text = t["sym"]
+                ET.SubElement(transaction, "price").text = str(t["price"])
+                ET.SubElement(transaction, "quoteServerTime").text = str((t["quoteServerTime"]))
+                ET.SubElement(transaction, "cryptokey").text = t["cryptokey"]
+
 
         xml_str = ET.tostring(root)
         pretty_xml = xml.dom.minidom.parseString(xml_str).toprettyxml()
@@ -560,19 +631,30 @@ def new_transaction(data, **atr):
     # default attributes
     tx = {
         "timestamp":time.time(),
-        "transactionNum":data['trxNum'],
         "command":cmd,
         "username": data['username'],
     }
 
     if "error" in atr:
+        tx["transactionNum"]:data['trxNum']
         tx["type"] = "errorEvent"
         tx["server"] = "TS1"
         tx['error'] = atr["error"]
         transaction_table.insert_one(tx)
         return tx
 
+    if cmd == "QUOTE":
+        tx['type'] = 'quoteServer'
+        tx['server'] = "QS1"
+        tx['stockPrice'] = data['price']
+        tx['sym'] = data['sym']
+        tx['cryptokey'] = data['cryptokey']
+        tx['quoteServerTime'] = data['quoteServerTime']
+        transaction_table.insert_one(tx)
+        return tx
+
     if cmd == "ADD":
+        tx["transactionNum"]:data['trxNum']
         tx["type"] = "accountTransaction"
         tx['server'] = "TS1"
         tx["amount"] = data['amount']
@@ -580,21 +662,25 @@ def new_transaction(data, **atr):
         return tx
 
     if cmd == "BUY" or cmd == "SELL":
+        tx["transactionNum"]:data['trxNum']
         tx["type"] = "accountTransaction"
         tx['server'] = "TS1"
         tx["amount"] = data['amount']
         tx["sym"] = data['sym']
+        tx['share'] = data['share']
         tx["flag"] = "pending"
         transaction_table.insert_one(tx)
         return tx
     
     if cmd in ["COMMIT_SELL","CANCEL_SELL","COMMIT_BUY","CANCEL_BUY","CANCEL_SET_SELL", "CANCEL_SET_BUY"]:
+        tx["transactionNum"]:data['trxNum']
         tx["type"] = "accountTransaction"
         tx['server'] = "TS1"
         transaction_table.insert_one(tx)
         return tx
     
     if cmd in ["SET_SELL_AMOUNT","SET_SELL_TRIGGER","SET_BUY_AMOUNT","SET_BUY_TRIGGER"]:
+        tx["transactionNum"]:data['trxNum']
         tx["type"] = "accountTransaction"
         tx['server'] = "TS1"
         tx["sym"] = data['sym']

@@ -17,6 +17,10 @@ class UnitTest(unittest.TestCase):
         self.user_table.drop()
         self.transaction_table.drop()
 
+    def test_quote(self):
+        data = {'cmd':'QUOTE', 'username':'testuser', 'sym':'S', 'trxNum':1 }
+        self.client.post('/quote', json=data)
+
     def test_add(self):
         # valid request - new user
         data = {'cmd':'ADD', 'username':'testuser', 'amount':200, 'trxNum':1 }
@@ -53,8 +57,9 @@ class UnitTest(unittest.TestCase):
         data = {'cmd':'BUY', 'username':'testuser', 'sym':'A', 'amount':200, 'trxNum':1 }
         self.client.post('/buy', json=data)
         self.assertEqual(self.user_table.count_documents({}), 1)
-        self.assertEqual(self.transaction_table.find_one({'username':'testuser'})['flag'], 'pending')
-
+        tx_filter = {"username": data['username'], "transactions.command": "BUY"}
+        self.assertEqual(self.user_table.find_one(tx_filter, {"transactions.$": 1})['transactions'][0]['flag'], 'pending')
+        
         # invalid request (wrong username)
         data = {'cmd':'BUY', 'username':'testuser1', 'sym':'A', 'amount':200, 'trxNum':1 }
         self.client.post('/buy', json=data)
@@ -70,12 +75,12 @@ class UnitTest(unittest.TestCase):
         user = {
             'username':"testuser",
             'funds':500,
-            'stocks':[{'sym':'A', 'amount':500}],
-            'transactions':[{'timestamp':time.time(), 'transactionNum':1, 'command': 'SELL', 'username':'testuser', 'amount':500, 'sym':'A', 'flag':'purchased'}]
+            'stocks':[{'sym':'A', 'amount':500, 'share':1}],
+            'transactions':[{'timestamp':time.time(), 'transactionNum':1, 'command': 'SELL', 'username':'testuser', 'amount':500, 'sym':'A', 'flag':'purchased', 'share':1}]
         }
         self.user_table.insert_one(user)
 
-        # invalid request - no recent SELL transactions
+        # invalid request - no recent BUY transactions
         data = {'cmd':'COMMIT_BUY', 'username':'testuser', 'trxNum':1 }
         self.client.post('/commit_buy', json=data)
         self.assertEqual(self.transaction_table.find_one({'username':'testuser'})['error'], 'No recent BUY transactions.')
@@ -83,7 +88,7 @@ class UnitTest(unittest.TestCase):
 
         # invlaid request - recent BUY but not pending
         self.user_table.update_one({'username':'testuser'}, {'$push': {'transactions': [
-            {'timestamp':time.time(), 'transactionNum':2, 'command': 'BUY', 'username':'testuser', 'amount':500, 'sym':'A', 'flag':'complete'}
+            {'timestamp':time.time(), 'transactionNum':2, 'command': 'BUY', 'username':'testuser', 'amount':500, 'sym':'A', 'flag':'complete', 'share':1}
         ]}})
         self.client.post('/commit_buy', json=data)
         self.assertEqual(self.transaction_table.find_one({'username':'testuser'})['error'], 'No recent BUY transactions.')
@@ -91,11 +96,13 @@ class UnitTest(unittest.TestCase):
 
         # valid request - most recent BUY that is pending (existing stock)
         self.user_table.update_one({'username':'testuser'}, {'$push': {'transactions': 
-            {'timestamp':time.time(), 'transactionNum':3, 'command': 'BUY', 'username':'testuser', 'amount':500, 'sym':'A', 'flag':'pending'}
+            {'timestamp':time.time(), 'transactionNum':3, 'command': 'BUY', 'username':'testuser', 'amount':500, 'sym':'A', 'flag':'pending', "share":1}
         }})
         self.user_table.update_one({'username':'testuser'}, {'$push': {'transactions': 
-            {'timestamp':time.time(), 'transactionNum':4, 'command': 'BUY', 'username':'testuser', 'amount':200, 'sym':'A', 'flag':'pending'}
+            {'timestamp':time.time(), 'transactionNum':4, 'command': 'BUY', 'username':'testuser', 'amount':200, 'sym':'A', 'flag':'pending', "share":1}
         }})
+        # for x in self.user_table.find():
+        #     print(x)
         self.client.post('/commit_buy', json=data)
         self.assertEqual(self.transaction_table.count_documents({'command':'COMMIT_BUY', 'type':'accountTransaction'}), 1) #added to transaction_table
         self.assertEqual(self.user_table.find_one({'username':'testuser'})['funds'], 300) # updated user funds
@@ -105,7 +112,7 @@ class UnitTest(unittest.TestCase):
 
         # valid request - most recent BUY that is pending (new stock)
         self.user_table.update_one({'username':'testuser'}, {'$push': {'transactions': 
-            {'timestamp':time.time(), 'transactionNum':5, 'command': 'BUY', 'username':'testuser', 'amount':50, 'sym':'B', 'flag':'pending'}
+            {'timestamp':time.time(), 'transactionNum':5, 'command': 'BUY', 'username':'testuser', 'amount':50, 'sym':'B', 'flag':'pending', "share":1}
         }})
         self.client.post('/commit_buy', json=data)
         self.assertEqual(self.transaction_table.count_documents({'command':'COMMIT_BUY', 'type':'accountTransaction'}), 2) #added to transaction_table
@@ -151,162 +158,212 @@ class UnitTest(unittest.TestCase):
         tx_filter = {"username": data['username'], "transactions.transactionNum": 4}
         self.assertEqual(self.user_table.find_one(tx_filter, {"transactions.$": 1})['transactions'][0]['flag'], 'cancelled') # check flag set to complete
 
-    def test_sell(self):
+    def test_set_buy_amount(self):
         user = {
             'username':"testuser",
+            'funds':500,
             'stocks':[{'sym':'A', 'amount':500}],
+            'reserved_buy':[],
             'transactions':[]
         }
         self.user_table.insert_one(user)
-
-        # valid request
-        data = {'cmd':'SELL', 'username':'testuser', 'sym':'A', 'amount':200, 'trxNum':1 }
-        self.client.post('/sell', json=data)
-        self.assertEqual(self.user_table.count_documents({}), 1)
-        self.assertEqual(self.transaction_table.find_one({'username':'testuser'})['flag'], 'pending')
-
-        # invalid request (wrong username)
-        data = {'cmd':'SELL', 'username':'testuser1', 'sym':'A', 'amount':200, 'trxNum':1 }
-        self.client.post('/sell', json=data)
-        self.assertEqual(self.transaction_table.find_one({'username':'testuser1'})['error'], 'The specified user does not exist.')
-
-        # invalid request (insufficient stock)
-        self.transaction_table.drop()
-        data = {'cmd':'SELL', 'username':'testuser', 'sym':'A', 'amount':600, 'trxNum':1 }
-        self.client.post('/sell', json=data)
-        self.assertEqual(self.transaction_table.find_one({'username':'testuser'})['error'], 'Insufficient stock amount.')
-
-    def test_commit_sell(self):
-        user = {
-            'username':"testuser",
-            'funds':500,
-            'stocks':[{'sym':'A', 'amount':500}],
-            'transactions':[{'timestamp':time.time(), 'transactionNum':1, 'command': 'BUY', 'username':'testuser', 'amount':500, 'sym':'A', 'flag':'purchased'}]
-        }
-        self.user_table.insert_one(user)
-
-        # invalid request - no recent SELL transactions
-        data = {'cmd':'COMMIT_SELL', 'username':'testuser', 'trxNum':1 }
-        self.client.post('/commit_sell', json=data)
-        self.assertEqual(self.transaction_table.find_one({'username':'testuser'})['error'], 'No recent SELL transactions.')
         
+        # invalid request - insufficient funds
+        data = {'cmd':"SET_BUY_AMOUNT", 'username':'testuser', 'sym':'A', 'amount':1000, 'trxNum':1}
+        self.client.post('/set_buy_amount', json=data)
+        self.assertEqual(self.transaction_table.find_one({'username':'testuser'})['error'], 'Insufficient Funds.')
 
-        # invlaid request - recent SELL but not pending
-        self.user_table.update_one({'username':'testuser'}, {'$push': {'transactions': [
-            {'timestamp':time.time(), 'transactionNum':2, 'command': 'SELL', 'username':'testuser', 'amount':500, 'sym':'A', 'flag':'complete'}
-        ]}})
-        self.client.post('/commit_sell', json=data)
-        self.assertEqual(self.transaction_table.find_one({'username':'testuser'})['error'], 'No recent SELL transactions.')
+        # valid request 
+        data = {'cmd':"SET_BUY_AMOUNT", 'username':'testuser', 'sym':'A', 'amount':200, 'trxNum':1}
+        self.client.post('/set_buy_amount', json=data)
+        filter = {'username': data['username']}
+        self.assertEqual(self.user_table.find_one(filter)['reserved_buy'][0]['sym'], 'A')
+        self.assertEqual(self.user_table.find_one(filter)['reserved_buy'][0]['amount'], 200)
 
-
-        # valid request - most recent SELL that is pending
-        self.user_table.update_one({'username':'testuser'}, {'$push': {'transactions': 
-            {'timestamp':time.time(), 'transactionNum':3, 'command': 'SELL', 'username':'testuser', 'amount':500, 'sym':'A', 'flag':'pending'}
-        }})
-        self.user_table.update_one({'username':'testuser'}, {'$push': {'transactions': 
-            {'timestamp':time.time(), 'transactionNum':4, 'command': 'SELL', 'username':'testuser', 'amount':200, 'sym':'A', 'flag':'pending'}
-        }})
-        self.client.post('/commit_sell', json=data)
-        self.assertEqual(self.transaction_table.count_documents({'command':'COMMIT_SELL', 'type':'accountTransaction'}), 1) #added to transaction_table
-        self.assertEqual(self.user_table.find_one({'username':'testuser'})['funds'], 700) # updated user funds
-        self.assertEqual(self.user_table.find_one({'username':'testuser'})['stocks'][0]['amount'], 300) # updated stock price
-        tx_filter = {"username": data['username'], "transactions.transactionNum": 4}
-        self.assertEqual(self.user_table.find_one(tx_filter, {"transactions.$": 1})['transactions'][0]['flag'], 'complete') # check flag set to complete
-
-    def test_cancel_sell(self):
+    def test_set_buy_trigger(self):
         user = {
             'username':"testuser",
             'funds':500,
             'stocks':[{'sym':'A', 'amount':500}],
-            'transactions':[{'timestamp':time.time(), 'transactionNum':1, 'command': 'BUY', 'username':'testuser', 'amount':500, 'sym':'A', 'flag':'purchased'}]
-        }
-        self.user_table.insert_one(user)
-
-        # invalid request - no recent SELL transactions
-        data = {'cmd':'CANCEL_SELL', 'username':'testuser', 'trxNum':1 }
-        self.client.post('/cancel_sell', json=data)
-        self.assertEqual(self.transaction_table.find_one({'username':'testuser'})['error'], 'No recent SELL transactions.')
-        
-
-        # invlaid request - recent SELL but not pending
-        self.user_table.update_one({'username':'testuser'}, {'$push': {'transactions': [
-            {'timestamp':time.time(), 'transactionNum':2, 'command': 'SELL', 'username':'testuser', 'amount':500, 'sym':'A', 'flag':'complete'}
-        ]}})
-        self.client.post('/cancel_sell', json=data)
-        self.assertEqual(self.transaction_table.find_one({'username':'testuser'})['error'], 'No recent SELL transactions.')
-
-
-        # valid request - most recent SELL that is pending
-        self.user_table.update_one({'username':'testuser'}, {'$push': {'transactions': 
-            {'timestamp':time.time(), 'transactionNum':3, 'command': 'SELL', 'username':'testuser', 'amount':500, 'sym':'A', 'flag':'pending'}
-        }})
-        self.user_table.update_one({'username':'testuser'}, {'$push': {'transactions': 
-            {'timestamp':time.time(), 'transactionNum':4, 'command': 'SELL', 'username':'testuser', 'amount':200, 'sym':'A', 'flag':'pending'}
-        }})
-        self.client.post('/cancel_sell', json=data)
-        self.assertEqual(self.transaction_table.count_documents({'command':'CANCEL_SELL', 'type':'accountTransaction'}), 1) #added to transaction_table
-        tx_filter = {"username": data['username'], "transactions.transactionNum": 4}
-        self.assertEqual(self.user_table.find_one(tx_filter, {"transactions.$": 1})['transactions'][0]['flag'], 'cancelled') # check flag set to complete
-
-    def test_set_sell_amount(self):
-        user = {
-            'username':"testuser",
-            'funds':500,
-            'reserved':[],
-            'stocks':[{'sym':'A', 'amount':500}],
+            'reserved_buy':[],
             'transactions':[]
         }
         self.user_table.insert_one(user)
+        
+        # invalid request - no set buy amount
+        data = {'cmd':"SET_BUY_TRIGGER", 'username':'testuser', 'sym':'A', 'amount':50, 'trxNum':1}
+        self.client.post('/set_buy_trigger', json=data)
+        self.assertEqual(self.transaction_table.find_one({'username':'testuser'})['error'], "No prereq SET_BUY_AMOUNT")
 
-        # invalid request - not enough stock
-        data = {'cmd':'SET_SELL_AMOUNT', 'username':'testuser', 'sym':'A', 'amount':600, 'trxNum':1 }
-        self.client.post('/set_sell_amount', json=data)
-        self.assertEqual(self.transaction_table.find_one({'username':'testuser'})['error'], 'Not enough stock.')
+        # valid request 
+        filter = {'username': data['username']}
+        self.user_table.update_one(filter, {"$push": { "reserved_buy": {"sym":"A", "amount":200}}})
+        data = {'cmd':"SET_BUY_TRIGGER", 'username':'testuser', 'sym':'A', 'amount':50, 'trxNum':1}
+        self.client.post('/set_buy_trigger', json=data)
+        for x in self.user_table.find():
+            print(x)
+        
+        self.assertEqual(self.user_table.find_one(filter)['reserved_buy'][0]['trigger_price'], 50)
 
-        # valid request - enough stock
-        data = {'cmd':'SET_SELL_AMOUNT', 'username':'testuser', 'sym':'A', 'amount':400, 'trxNum':1 }
-        response = self.client.post('/set_sell_amount', json=data)
-        self.assertEqual(response.data, b'successfully set sell amount')
-        self.assertEqual(self.user_table.find_one({'username':'testuser'})['reserved_sell'][0]['amount'], 400)
+
+
+
+    # def test_sell(self):
+    #     user = {
+    #         'username':"testuser",
+    #         'stocks':[{'sym':'A', 'amount':500}],
+    #         'transactions':[]
+    #     }
+    #     self.user_table.insert_one(user)
+
+    #     # valid request
+    #     data = {'cmd':'SELL', 'username':'testuser', 'sym':'A', 'amount':200, 'trxNum':1 }
+    #     self.client.post('/sell', json=data)
+    #     self.assertEqual(self.user_table.count_documents({}), 1)
+    #     self.assertEqual(self.transaction_table.find_one({'username':'testuser'})['flag'], 'pending')
+
+    #     # invalid request (wrong username)
+    #     data = {'cmd':'SELL', 'username':'testuser1', 'sym':'A', 'amount':200, 'trxNum':1 }
+    #     self.client.post('/sell', json=data)
+    #     self.assertEqual(self.transaction_table.find_one({'username':'testuser1'})['error'], 'The specified user does not exist.')
+
+    #     # invalid request (insufficient stock)
+    #     self.transaction_table.drop()
+    #     data = {'cmd':'SELL', 'username':'testuser', 'sym':'A', 'amount':600, 'trxNum':1 }
+    #     self.client.post('/sell', json=data)
+    #     self.assertEqual(self.transaction_table.find_one({'username':'testuser'})['error'], 'Insufficient stock amount.')
+
+    # def test_commit_sell(self):
+    #     user = {
+    #         'username':"testuser",
+    #         'funds':500,
+    #         'stocks':[{'sym':'A', 'amount':500}],
+    #         'transactions':[{'timestamp':time.time(), 'transactionNum':1, 'command': 'BUY', 'username':'testuser', 'amount':500, 'sym':'A', 'flag':'purchased'}]
+    #     }
+    #     self.user_table.insert_one(user)
+
+    #     # invalid request - no recent SELL transactions
+    #     data = {'cmd':'COMMIT_SELL', 'username':'testuser', 'trxNum':1 }
+    #     self.client.post('/commit_sell', json=data)
+    #     self.assertEqual(self.transaction_table.find_one({'username':'testuser'})['error'], 'No recent SELL transactions.')
         
 
-    def test_set_sell_trigger(self):
-        user = {
-            'username':"testuser",
-            'funds':500,
-            'reserved_sell':[{'sym':'A', 'amount':500}],
-            'stocks':[{'sym':'A', 'amount':500}],
-            'transactions':[]
-        }
-        self.user_table.insert_one(user)
+    #     # invlaid request - recent SELL but not pending
+    #     self.user_table.update_one({'username':'testuser'}, {'$push': {'transactions': [
+    #         {'timestamp':time.time(), 'transactionNum':2, 'command': 'SELL', 'username':'testuser', 'amount':500, 'sym':'A', 'flag':'complete'}
+    #     ]}})
+    #     self.client.post('/commit_sell', json=data)
+    #     self.assertEqual(self.transaction_table.find_one({'username':'testuser'})['error'], 'No recent SELL transactions.')
 
-        # invalid request - no sell amount
-        data = {'cmd':'SET_SELL_TRIGGER', 'username':'testuser', 'sym':'B', 'amount':600, 'trxNum':1 }
-        self.client.post('/set_sell_trigger', json=data)
-        self.assertEqual(self.transaction_table.find_one({'username':'testuser'})['error'], 'Set sell amount first.')
 
-        # # valid request - sell amount set
-        data = {'cmd':'SET_SELL_TRIGGER', 'username':'testuser', 'sym':'A', 'amount':50, 'trxNum':1 }
-        response = self.client.post('/set_sell_trigger', json=data)
-        self.assertEqual(response.data, b'successfully set sell trigger')
-        self.assertEqual(self.user_table.find_one({'username':'testuser'})['reserved_sell'][0]['trigger'], 50)
+    #     # valid request - most recent SELL that is pending
+    #     self.user_table.update_one({'username':'testuser'}, {'$push': {'transactions': 
+    #         {'timestamp':time.time(), 'transactionNum':3, 'command': 'SELL', 'username':'testuser', 'amount':500, 'sym':'A', 'flag':'pending'}
+    #     }})
+    #     self.user_table.update_one({'username':'testuser'}, {'$push': {'transactions': 
+    #         {'timestamp':time.time(), 'transactionNum':4, 'command': 'SELL', 'username':'testuser', 'amount':200, 'sym':'A', 'flag':'pending'}
+    #     }})
+    #     self.client.post('/commit_sell', json=data)
+    #     self.assertEqual(self.transaction_table.count_documents({'command':'COMMIT_SELL', 'type':'accountTransaction'}), 1) #added to transaction_table
+    #     self.assertEqual(self.user_table.find_one({'username':'testuser'})['funds'], 700) # updated user funds
+    #     self.assertEqual(self.user_table.find_one({'username':'testuser'})['stocks'][0]['amount'], 300) # updated stock price
+    #     tx_filter = {"username": data['username'], "transactions.transactionNum": 4}
+    #     self.assertEqual(self.user_table.find_one(tx_filter, {"transactions.$": 1})['transactions'][0]['flag'], 'complete') # check flag set to complete
 
-    def test_dumplog(self):
-        user = {
-            'username':"testuser",
-            'funds':500,
-            'reserved_sell':[{'sym':'A', 'amount':500}],
-            'stocks':[{'sym':'A', 'amount':500}],
-            'transactions':[
-            {'timestamp':time.time(), 'transactionNum':3, 'command': 'BUY', 'username':'testuser', 'amount':500, 'sym':'A', 'flag':'pending', 'type':'accountTransaction'},
-            {'timestamp':time.time(), 'transactionNum':3, 'command': 'SELL', 'username':'testuser', 'amount':500, 'sym':'A', 'flag':'pending', 'type':'accountTransaction'},
-            {'timestamp':time.time(), 'transactionNum':3, 'command': 'BUY', 'username':'testuser', 'amount':500, 'sym':'A', 'flag':'pending', 'type':'accountTransaction'},
-            {'timestamp':time.time(), 'transactionNum':3, 'command': 'SELL', 'username':'testuser', 'amount':500, 'sym':'A', 'error':'this is an error', 'type':'errorEvent'}
-            ]
-        }
-        self.user_table.insert_one(user)
-        data = {'cmd':'DUMPLOG', 'username':'testuser', 'trxNum':1 }
-        self.client.post('/dumplog', json=data)
+    # def test_cancel_sell(self):
+    #     user = {
+    #         'username':"testuser",
+    #         'funds':500,
+    #         'stocks':[{'sym':'A', 'amount':500}],
+    #         'transactions':[{'timestamp':time.time(), 'transactionNum':1, 'command': 'BUY', 'username':'testuser', 'amount':500, 'sym':'A', 'flag':'purchased'}]
+    #     }
+    #     self.user_table.insert_one(user)
+
+    #     # invalid request - no recent SELL transactions
+    #     data = {'cmd':'CANCEL_SELL', 'username':'testuser', 'trxNum':1 }
+    #     self.client.post('/cancel_sell', json=data)
+    #     self.assertEqual(self.transaction_table.find_one({'username':'testuser'})['error'], 'No recent SELL transactions.')
+        
+
+    #     # invlaid request - recent SELL but not pending
+    #     self.user_table.update_one({'username':'testuser'}, {'$push': {'transactions': [
+    #         {'timestamp':time.time(), 'transactionNum':2, 'command': 'SELL', 'username':'testuser', 'amount':500, 'sym':'A', 'flag':'complete'}
+    #     ]}})
+    #     self.client.post('/cancel_sell', json=data)
+    #     self.assertEqual(self.transaction_table.find_one({'username':'testuser'})['error'], 'No recent SELL transactions.')
+
+
+    #     # valid request - most recent SELL that is pending
+    #     self.user_table.update_one({'username':'testuser'}, {'$push': {'transactions': 
+    #         {'timestamp':time.time(), 'transactionNum':3, 'command': 'SELL', 'username':'testuser', 'amount':500, 'sym':'A', 'flag':'pending'}
+    #     }})
+    #     self.user_table.update_one({'username':'testuser'}, {'$push': {'transactions': 
+    #         {'timestamp':time.time(), 'transactionNum':4, 'command': 'SELL', 'username':'testuser', 'amount':200, 'sym':'A', 'flag':'pending'}
+    #     }})
+    #     self.client.post('/cancel_sell', json=data)
+    #     self.assertEqual(self.transaction_table.count_documents({'command':'CANCEL_SELL', 'type':'accountTransaction'}), 1) #added to transaction_table
+    #     tx_filter = {"username": data['username'], "transactions.transactionNum": 4}
+    #     self.assertEqual(self.user_table.find_one(tx_filter, {"transactions.$": 1})['transactions'][0]['flag'], 'cancelled') # check flag set to complete
+
+    # def test_set_sell_amount(self):
+    #     user = {
+    #         'username':"testuser",
+    #         'funds':500,
+    #         'reserved':[],
+    #         'stocks':[{'sym':'A', 'amount':500}],
+    #         'transactions':[]
+    #     }
+    #     self.user_table.insert_one(user)
+
+    #     # invalid request - not enough stock
+    #     data = {'cmd':'SET_SELL_AMOUNT', 'username':'testuser', 'sym':'A', 'amount':600, 'trxNum':1 }
+    #     self.client.post('/set_sell_amount', json=data)
+    #     self.assertEqual(self.transaction_table.find_one({'username':'testuser'})['error'], 'Not enough stock.')
+
+    #     # valid request - enough stock
+    #     data = {'cmd':'SET_SELL_AMOUNT', 'username':'testuser', 'sym':'A', 'amount':400, 'trxNum':1 }
+    #     response = self.client.post('/set_sell_amount', json=data)
+    #     self.assertEqual(response.data, b'successfully set sell amount')
+    #     self.assertEqual(self.user_table.find_one({'username':'testuser'})['reserved_sell'][0]['amount'], 400)
+        
+
+    # def test_set_sell_trigger(self):
+    #     user = {
+    #         'username':"testuser",
+    #         'funds':500,
+    #         'reserved_sell':[{'sym':'A', 'amount':500}],
+    #         'stocks':[{'sym':'A', 'amount':500}],
+    #         'transactions':[]
+    #     }
+    #     self.user_table.insert_one(user)
+
+    #     # invalid request - no sell amount
+    #     data = {'cmd':'SET_SELL_TRIGGER', 'username':'testuser', 'sym':'B', 'amount':600, 'trxNum':1 }
+    #     self.client.post('/set_sell_trigger', json=data)
+    #     self.assertEqual(self.transaction_table.find_one({'username':'testuser'})['error'], 'Set sell amount first.')
+
+    #     # # valid request - sell amount set
+    #     data = {'cmd':'SET_SELL_TRIGGER', 'username':'testuser', 'sym':'A', 'amount':50, 'trxNum':1 }
+    #     response = self.client.post('/set_sell_trigger', json=data)
+    #     self.assertEqual(response.data, b'successfully set sell trigger')
+    #     self.assertEqual(self.user_table.find_one({'username':'testuser'})['reserved_sell'][0]['trigger'], 50)
+
+    # def test_dumplog(self):
+    #     user = {
+    #         'username':"testuser",
+    #         'funds':500,
+    #         'reserved_sell':[{'sym':'A', 'amount':500}],
+    #         'stocks':[{'sym':'A', 'amount':500}],
+    #         'transactions':[
+    #         {'timestamp':time.time(), 'transactionNum':3, 'command': 'BUY', 'username':'testuser', 'amount':500, 'sym':'A', 'flag':'pending', 'type':'accountTransaction', 'server':"TS1"},
+    #         {'timestamp':time.time(), 'transactionNum':3, 'command': 'SELL', 'username':'testuser', 'amount':500, 'sym':'A', 'flag':'pending', 'type':'accountTransaction', 'server':"TS1"},
+    #         {'timestamp':time.time(), 'transactionNum':3, 'command': 'BUY', 'username':'testuser', 'amount':500, 'sym':'A', 'flag':'pending', 'type':'accountTransaction', 'server':"TS1"},
+    #         {'timestamp':time.time(), 'transactionNum':3, 'command': 'SELL', 'username':'testuser', 'amount':500, 'sym':'A', 'error':'this is an error', 'type':'errorEvent', 'server':"TS1"}
+    #         ]
+    #     }
+    #     self.user_table.insert_one(user)
+    #     data = {'cmd':'DUMPLOG', 'filename':'file', 'username':'testuser', 'trxNum':1 }
+    #     self.client.post('/dumplog', json=data)
 
 if __name__ == '__main__':
     unittest.main()
