@@ -11,7 +11,6 @@ def createCommand(line, count):
 
     print(cmd, trxNum)
     
-    # TODO need a separate quote server count
     if(cmd == "QUOTE"):
         requests.post(apiUrl + "/quote", json={'cmd':cmd, 'username':c[1], 'sym':c[2]})
 
