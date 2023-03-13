@@ -69,7 +69,7 @@ class UnitTest(unittest.TestCase):
         self.transaction_table.drop()
         data = {'cmd':'BUY', 'username':'testuser', 'sym':'A', 'amount':600, 'trxNum':1 }
         self.client.post('/buy', json=data)
-        self.assertEqual(self.transaction_table.find_one({'username':'testuser'})['error'], 'Insufficient funds.')
+        self.assertEqual(self.transaction_table.find_one({'username':'testuser', 'type':'errorEvent'})['error'], 'Insufficient funds.')
 
     def test_commit_buy(self):
         user = {
@@ -200,38 +200,56 @@ class UnitTest(unittest.TestCase):
         self.user_table.update_one(filter, {"$push": { "reserved_buy": {"sym":"A", "amount":200}}})
         data = {'cmd':"SET_BUY_TRIGGER", 'username':'testuser', 'sym':'A', 'amount':50, 'trxNum':1}
         self.client.post('/set_buy_trigger', json=data)
-        for x in self.user_table.find():
-            print(x)
-        
+        # for x in self.user_table.find():
+        #     print(x)
         self.assertEqual(self.user_table.find_one(filter)['reserved_buy'][0]['trigger_price'], 50)
 
+    def test_cancel_set_buy(self):
+        user = {
+            'username':"testuser",
+            'funds':500,
+            'stocks':[],
+            'reserved_buy':[{'sym':'A', 'amount':200}],
+            'transactions':[]
+        }
+        self.user_table.insert_one(user)
+
+        # invalid request
+        data = {'cmd':"CANCEL_SET_BUY", 'username':'testuser', 'sym':'B', 'trxNum':1}
+        self.client.post('/cancel_set_buy', json=data)
+        self.assertEqual(self.transaction_table.find_one({'username':'testuser'})['error'], 'No prereq SET_BUY_AMOUNT')
+
+        # valid request
+        data = {'cmd':"CANCEL_SET_BUY", 'username':'testuser', 'sym':'A', 'trxNum':1}
+        self.client.post('/cancel_set_buy', json=data)
+        self.assertEqual(self.user_table.find_one({'username':'testuser'})['funds'], 700)
 
 
+    def test_sell(self):
+        user = {
+            'username':"testuser",
+            'stocks':[{'sym':'A', 'amount':500}],
+            'transactions':[]
+        }
+        self.user_table.insert_one(user)
 
-    # def test_sell(self):
-    #     user = {
-    #         'username':"testuser",
-    #         'stocks':[{'sym':'A', 'amount':500}],
-    #         'transactions':[]
-    #     }
-    #     self.user_table.insert_one(user)
+        # valid request
+        data = {'cmd':'SELL', 'username':'testuser', 'sym':'A', 'amount':200, 'trxNum':1 }
+        self.client.post('/sell', json=data)
+        self.assertEqual(self.user_table.count_documents({}), 1)
+        tx_filter = {"username": data['username'], "transactions.command": "SELL"}
+        self.assertEqual(self.user_table.find_one(tx_filter, {"transactions.$": 1})['transactions'][0]['flag'], 'pending')
 
-    #     # valid request
-    #     data = {'cmd':'SELL', 'username':'testuser', 'sym':'A', 'amount':200, 'trxNum':1 }
-    #     self.client.post('/sell', json=data)
-    #     self.assertEqual(self.user_table.count_documents({}), 1)
-    #     self.assertEqual(self.transaction_table.find_one({'username':'testuser'})['flag'], 'pending')
+        # invalid request (wrong username)
+        data = {'cmd':'SELL', 'username':'testuser1', 'sym':'A', 'amount':200, 'trxNum':1 }
+        self.client.post('/sell', json=data)
+        self.assertEqual(self.transaction_table.find_one({'username':'testuser1'})['error'], 'The specified user does not exist.')
 
-    #     # invalid request (wrong username)
-    #     data = {'cmd':'SELL', 'username':'testuser1', 'sym':'A', 'amount':200, 'trxNum':1 }
-    #     self.client.post('/sell', json=data)
-    #     self.assertEqual(self.transaction_table.find_one({'username':'testuser1'})['error'], 'The specified user does not exist.')
-
-    #     # invalid request (insufficient stock)
-    #     self.transaction_table.drop()
-    #     data = {'cmd':'SELL', 'username':'testuser', 'sym':'A', 'amount':600, 'trxNum':1 }
-    #     self.client.post('/sell', json=data)
-    #     self.assertEqual(self.transaction_table.find_one({'username':'testuser'})['error'], 'Insufficient stock amount.')
+        # invalid request (insufficient stock)
+        self.transaction_table.drop()
+        data = {'cmd':'SELL', 'username':'testuser', 'sym':'A', 'amount':600, 'trxNum':1 }
+        self.client.post('/sell', json=data)
+        self.assertEqual(self.transaction_table.find_one({'username':'testuser', 'type':'errorEvent'})['error'], 'Insufficient stock amount.')
 
     # def test_commit_sell(self):
     #     user = {

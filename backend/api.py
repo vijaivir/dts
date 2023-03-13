@@ -6,8 +6,8 @@ import time
 import requests
 
 # container name for mongo db
-client = MongoClient("mongodb://mongo_database", 27017)
-#client = MongoClient()
+# client = MongoClient("mongodb://mongo_database", 27017)
+client = MongoClient()
 
 db = client.user_database
 # Create two collections (user_table, transaction_table)
@@ -30,7 +30,7 @@ Database Structure:
         {
             "sym":"",
             "amount":"",
-            "shares":, 
+            "share":, 
         }
     ],
     "reserved_buy":[
@@ -74,8 +74,8 @@ def get_quote():
 
 def quote(sym, username):
     filter = {"username":username}
-    quote_price = requests.get('http://fe26-2604-3d08-2679-2000-c58a-51ec-8599-b312.ngrok.io/quote')
-    # quote_price = requests.get('http://localhost:5000/quote')
+    #quote_price = requests.get('http://fe26-2604-3d08-2679-2000-c58a-51ec-8599-b312.ngrok.io/quote')
+    quote_price = requests.get('http://localhost:5000/quote')
     res = quote_price.json()
     res['username'] = username
     res['cmd'] = "QUOTE"
@@ -312,23 +312,15 @@ def cancel_set_buy():
     filter = {"username":data['username']}
     if not account_exists(data['username']):
         new_transaction(data, error="The specified user does not exist.")
-    valid_reserve = user_table.find_one({
-        "username":data["username"], 
-        "reserved_buy": {
-            "$elemMatch": {
-                "sym": data["sym"]
-                }
-            }
-        },
-        {"reserved.sym": 1, "reserved.amount": 1 }
-        )
+    valid_reserve = user_table.find_one({"username": data['username'], "reserved_buy.sym": data['sym']}, 
+                                        {"_id": 0, "reserved_buy.$": 1})
 
     if not valid_reserve:
         new_transaction(data, error="No prereq SET_BUY_AMOUNT")
         return f"No prereq SET_BUY_AMOUNT for stock {data['sym']}"
 
     balance = user_table.find_one(filter)["funds"]
-    reserve_amount = valid_reserve['reserved'][0]["amount"]
+    reserve_amount = valid_reserve['reserved_buy'][0]["amount"]
     update = {"$set": {"funds": float(balance) + reserve_amount},             
                 "$pull": {
                     "reserved_buy": {
@@ -354,19 +346,13 @@ def sell():
 
     filter = {"username":data['username']}
 
-    # get quote
-    quote_price = requests.get('http://localhost:5000/quote')
-    t2 = time.time()
-    res = quote_price.json()
-    res['trxNum'] = data['trxNum']
-    res['username'] = data['username']
-    res['cmd'] = "QUOTE"
-    res['sym'] = data['sym']
-    res['cryptokey'] = '1wb2DqmVTnPYxw6fNtql5qKYkEQ'
-    res['quoteServerTime'] = t2
-    res['flag'] = ''
-    qtx = new_transaction(res)
-    user_table.update_one(filter, {"$push": {"transactions": qtx}} )
+    # get the quote (automatically updates user stock)
+    stock_quote = quote(data['sym'], data['username'])
+    stock_price = stock_quote['price']
+
+    # share that can be bought with the specified price rounded to the nearest whole number
+    share = float(data['amount']) // float(stock_price)
+    data['share'] = share
 
     user_stocks = user_table.find_one(filter)['stocks']
 
@@ -607,6 +593,7 @@ def dumplog():
 def testing():
     return "ITS WORKING"
 
+
 @app.route("/clear", methods=["GET"])
 def clear():
     user_table.delete_many({})
@@ -725,4 +712,4 @@ def recent_transaction(username, cmd, timestamp):
 
 
 if __name__ =="__main__":
-    app.run(host="0.0.0.0", debug=True)
+    app.run(host="0.0.0.0", debug=True, port=5001)
