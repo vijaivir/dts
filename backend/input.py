@@ -3,7 +3,7 @@ import sys
 import asyncio
 import time
 
-apiUrl = "http://localhost"
+apiUrl = "http://localhost:5001"
 
 
 async def createCommand(line, count):
@@ -67,7 +67,7 @@ async def createCommand(line, count):
 
 async def readInputFile(fileName):
     with open(fileName, "r") as f:
-        count = 0
+        count = 1
         tasks = []
         for line in f:
             line = line.strip().rstrip()

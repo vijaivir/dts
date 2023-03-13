@@ -74,8 +74,8 @@ def get_quote():
 
 def quote(sym, username):
     filter = {"username":username}
-    #quote_price = requests.get('http://fe26-2604-3d08-2679-2000-c58a-51ec-8599-b312.ngrok.io/quote')
-    quote_price = requests.get('http://localhost:5000/quote')
+    quote_price = requests.get('http://fe26-2604-3d08-2679-2000-c58a-51ec-8599-b312.ngrok.io/quote')
+    #quote_price = requests.get('http://localhost:5000/quote')
     res = quote_price.json()
     res['username'] = username
     res['cmd'] = "QUOTE"
@@ -258,7 +258,7 @@ def set_buy_amount():
         new_transaction(data, error="Insufficient Funds.")
         return "Insufficient Funds"
 
-    update = {"$set": {"funds": float(balance) - reserve_amount},             
+    update = {"$set": {"funds": float(balance) - float(reserve_amount)},             
                 "$push": {
                     "reserved_buy": {
                         "amount":reserve_amount, "sym": data['sym']
@@ -321,7 +321,7 @@ def cancel_set_buy():
 
     balance = user_table.find_one(filter)["funds"]
     reserve_amount = valid_reserve['reserved_buy'][0]["amount"]
-    update = {"$set": {"funds": float(balance) + reserve_amount},             
+    update = {"$set": {"funds": float(balance) + float(reserve_amount)},             
                 "$pull": {
                     "reserved_buy": {
                         "amount":reserve_amount, "sym": data['sym']
@@ -620,11 +620,10 @@ def dumplog():
             elif t['type'] == 'quoteServer':
                 transaction = ET.SubElement(root, "quoteServer")
                 ET.SubElement(transaction, "timestamp").text = str((t["timestamp"]))
-                ET.SubElement(transaction, "transactionNum").text = str((t["transactionNum"]))
                 ET.SubElement(transaction, "username").text = t["username"]
                 ET.SubElement(transaction, "server").text = t["server"]
                 ET.SubElement(transaction, "stockSymbol").text = t["sym"]
-                ET.SubElement(transaction, "price").text = str(t["price"])
+                ET.SubElement(transaction, "stockPrice").text = str(t["stockPrice"])
                 ET.SubElement(transaction, "quoteServerTime").text = str((t["quoteServerTime"]))
                 ET.SubElement(transaction, "cryptokey").text = t["cryptokey"]
 
@@ -671,7 +670,7 @@ def new_transaction(data, **atr):
     }
 
     if "error" in atr:
-        tx["transactionNum"]:data['trxNum']
+        tx["transactionNum"] = data['trxNum']
         tx["type"] = "errorEvent"
         tx["server"] = "TS1"
         tx['error'] = atr["error"]
@@ -689,7 +688,7 @@ def new_transaction(data, **atr):
         return tx
 
     if cmd == "ADD":
-        tx["transactionNum"]:data['trxNum']
+        tx["transactionNum"] = data['trxNum']
         tx["type"] = "accountTransaction"
         tx['server'] = "TS1"
         tx["amount"] = data['amount']
@@ -697,7 +696,7 @@ def new_transaction(data, **atr):
         return tx
 
     if cmd == "BUY" or cmd == "SELL":
-        tx["transactionNum"]:data['trxNum']
+        tx["transactionNum"] = data['trxNum']
         tx["type"] = "accountTransaction"
         tx['server'] = "TS1"
         tx["amount"] = data['amount']
@@ -708,14 +707,14 @@ def new_transaction(data, **atr):
         return tx
     
     if cmd in ["COMMIT_SELL","CANCEL_SELL","COMMIT_BUY","CANCEL_BUY","CANCEL_SET_SELL", "CANCEL_SET_BUY"]:
-        tx["transactionNum"]:data['trxNum']
+        tx["transactionNum"] = data['trxNum']
         tx["type"] = "accountTransaction"
         tx['server'] = "TS1"
         transaction_table.insert_one(tx)
         return tx
     
     if cmd in ["SET_SELL_AMOUNT","SET_SELL_TRIGGER","SET_BUY_AMOUNT","SET_BUY_TRIGGER"]:
-        tx["transactionNum"]:data['trxNum']
+        tx["transactionNum"] = data['trxNum']
         tx["type"] = "accountTransaction"
         tx['server'] = "TS1"
         tx["sym"] = data['sym']
