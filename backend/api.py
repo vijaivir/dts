@@ -608,7 +608,7 @@ def new_transaction(data, **atr):
 # returns the most recent pending transaction as a dictionary {}
 def recent_transaction(username, cmd, timestamp):
     greater_than_time = timestamp - 60
-    # create the pipeline
+    # creategit the pipeline
     pipeline = [
         {"$match": {"username": username}}, # add $match stage to filter by username
         {
