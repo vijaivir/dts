@@ -5,7 +5,9 @@ import xml.dom.minidom
 import time
 import requests
 
-client = MongoClient()
+# container name for mongo db
+client = MongoClient("mongodb://mongo_database", 27017)
+
 db = client.user_database
 # Create two collections (user_table, transaction_table)
 user_table = db.user_table
@@ -600,6 +602,10 @@ def dumplog():
     return pretty_xml.encode('utf-8')
 
 
+@app.route("/testing", methods=["GET"])
+def testing():
+    return "ITS WORKING"
+
 @app.route("/clear", methods=["GET"])
 def clear():
     user_table.delete_many({})
@@ -718,4 +724,4 @@ def recent_transaction(username, cmd, timestamp):
 
 
 if __name__ =="__main__":
-    app.run(host="0.0.0.0", port=5001, debug=True)
+    app.run(host="0.0.0.0", debug=True)
