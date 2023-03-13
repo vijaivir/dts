@@ -6,7 +6,8 @@ import time
 import requests
 
 # container name for mongo db
-client = MongoClient()
+client = MongoClient("mongodb://mongo_database", 27017)
+#client = MongoClient()
 
 db = client.user_database
 # Create two collections (user_table, transaction_table)
@@ -73,8 +74,8 @@ def get_quote():
 
 def quote(sym, username):
     filter = {"username":username}
-    # quote_price = requests.get('http://fe26-2604-3d08-2679-2000-c58a-51ec-8599-b312.ngrok.io/quote')
-    quote_price = requests.get('http://localhost:5000/quote')
+    quote_price = requests.get('http://fe26-2604-3d08-2679-2000-c58a-51ec-8599-b312.ngrok.io/quote')
+    # quote_price = requests.get('http://localhost:5000/quote')
     res = quote_price.json()
     res['username'] = username
     res['cmd'] = "QUOTE"
