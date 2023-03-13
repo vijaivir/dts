@@ -6,6 +6,6 @@ COPY . .
 
 RUN pip install -r requirements.txt
 
-EXPOSE 5000
+EXPOSE 5001
 
-CMD gunicorn --bind 0.0.0.0:5000 buyservice:app
+CMD gunicorn --bind 0.0.0.0:5001 buyservice:app

@@ -10,11 +10,17 @@ services:
     build:
       context: ./backend/buy
     ports:
-      - "5000"
+      - "5001"
 
   backend_sell:
     build:
       context: ./backend/sell
+    ports:
+      - "5000"
+
+  backend:
+    build:
+      context: ./backend
     ports:
       - "5000"
 
