@@ -1,0 +1,8 @@
+1. docker build -t mongo .
+2. docker run -p 27017:27017 mongo
+To enter mongo and see dbs
+
+3. docker ps (to get the docker container id)
+4. docker exec -it <id> /bin/bash
+5. once inside do: mongosh
+6. show dbs (to see databases)
