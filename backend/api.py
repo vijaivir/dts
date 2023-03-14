@@ -108,7 +108,7 @@ def update_stocks(sym, price, username):
         # check if price is less than or equal to trigger price
         buy_trigger = set_buy['reserved_buy'][0]['trigger']
         buy_amount = set_buy['reserved_buy'][0]['amount']
-        if float(price) <= buy_trigger:
+        if float(price) <= float(buy_trigger):
             # buy the stock
 
             # check if user owns the stock already
@@ -149,7 +149,7 @@ def update_stocks(sym, price, username):
     if set_sell:
         # check if price is less than or equal to trigger price
         sell_trigger = set_sell['reserved_sell'][0]['trigger']
-        if float(price) >= sell_trigger:
+        if float(price) >= float(sell_trigger):
             # sell the stock
             amount_sold = set_sell['reserved_sell'][0]['amount']
             user_funds = user_table.find_one({'username':username})['funds']
