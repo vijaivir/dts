@@ -1,7 +1,7 @@
 <?xml version="1.0" ?>
 <log>
 	<accountTransaction>
-		<timestamp>1678767203.889005</timestamp>
+		<timestamp>1678827278.355584</timestamp>
 		<transactionNum>3</transactionNum>
 		<command>BUY</command>
 		<username>testuser</username>
@@ -10,7 +10,7 @@
 		<stockSymbol>A</stockSymbol>
 	</accountTransaction>
 	<accountTransaction>
-		<timestamp>1678767203.8890061</timestamp>
+		<timestamp>1678827278.355585</timestamp>
 		<transactionNum>3</transactionNum>
 		<command>SELL</command>
 		<username>testuser</username>
@@ -19,7 +19,7 @@
 		<stockSymbol>A</stockSymbol>
 	</accountTransaction>
 	<accountTransaction>
-		<timestamp>1678767203.8890061</timestamp>
+		<timestamp>1678827278.355585</timestamp>
 		<transactionNum>3</transactionNum>
 		<command>BUY</command>
 		<username>testuser</username>
@@ -28,7 +28,7 @@
 		<stockSymbol>A</stockSymbol>
 	</accountTransaction>
 	<errorEvent>
-		<timestamp>1678767203.8890061</timestamp>
+		<timestamp>1678827278.355585</timestamp>
 		<transactionNum>3</transactionNum>
 		<command>SELL</command>
 		<username>testuser</username>

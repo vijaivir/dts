@@ -91,6 +91,7 @@ def quote(sym, username):
 # also executes any triggers
 def update_stocks(sym, price, username):
     # if the user owns stock (sym) update the amount based on their shares
+    filter = {'username': username}
     stock_filter = {"username": username, "stocks.sym": sym}
     stock_owned = user_table.find_one(stock_filter, {"stocks.$": 1})
 
@@ -108,14 +109,14 @@ def update_stocks(sym, price, username):
         # check if price is less than or equal to trigger price
         buy_trigger = set_buy['reserved_buy'][0]['trigger']
         buy_amount = set_buy['reserved_buy'][0]['amount']
-        if float(price) <= buy_trigger:
+        new_share = float(buy_amount) // float(price)
+        if float(price) <= float(buy_trigger):
             # buy the stock
 
             # check if user owns the stock already
             stock_owned = user_table.find_one(stock_filter, {"stocks.$": 1})
             if stock_owned:
                 # update stock
-                new_share = float(buy_amount) // float(price)
                 amount_owned = stock_owned['stocks'][0]['amount']
                 share_owned = stock_owned['stocks'][0]['share']
                 user_table.update_one(stock_filter, {"$set": {"stocks.$.amount": float(buy_amount) + float(amount_owned)}})
@@ -149,7 +150,7 @@ def update_stocks(sym, price, username):
     if set_sell:
         # check if price is less than or equal to trigger price
         sell_trigger = set_sell['reserved_sell'][0]['trigger']
-        if float(price) >= sell_trigger:
+        if float(price) >= float(sell_trigger):
             # sell the stock
             amount_sold = set_sell['reserved_sell'][0]['amount']
             user_funds = user_table.find_one({'username':username})['funds']
@@ -541,7 +542,7 @@ def set_sell_amount():
 
     # add to reserved sell
     user_table.update_one(filter, {"$push": {"transactions": new_transaction(data), 
-                                             "reserved_sell": {'sym':data['sym'], 'amount':data['amount']}}})
+                                             "reserved_sell": {'sym':data['sym'], 'amount':data['amount'] , 'trigger':""}}})
     return 'Set Sell Amount'
 
 
@@ -607,12 +608,11 @@ def cancel_set_sell():
     trigger = user_table.find_one(reserved_filter, {"reserved_sell.$": 1})['reserved_sell'][0]['trigger']
     amount_owned = user_table.find_one(stock_filter, {"stocks.$": 1})['stocks'][0]['amount']
     share_owned = user_table.find_one(stock_filter, {"stocks.$": 1})['stocks'][0]['share']
-    share_subtracted = float(amount_to_sell) // float(trigger)
-
-    # update user stocks
-    user_table.update_one(stock_filter, {"$set": {"stocks.$.amount": float(amount_owned) + float(amount_to_sell), 
+    if trigger != "":
+        share_subtracted = float(amount_to_sell) // float(trigger)
+        # update user stocks
+        user_table.update_one(stock_filter, {"$set": {"stocks.$.amount": float(amount_owned) + float(amount_to_sell), 
                                                   "stocks.$.share": float(share_owned) + float(share_subtracted)}} )
-
     # remove from reserved_sell
     user_table.update_one(reserved_filter, {"$pull": {"reserved_sell": {"sym": data['sym']}}})
     

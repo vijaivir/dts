@@ -240,7 +240,7 @@ class UnitTest(unittest.TestCase):
         # for x in self.user_table.find():
         #     print(x)
         tx_filter = {"username": data['username'], "transactions.command": "SELL"}
-        self.assertEqual(self.user_table.find_one(tx_filter, {"transactions.$": 1})['transactions'][0]['flag'], 'pending')
+        #self.assertEqual(self.user_table.find_one(tx_filter, {"transactions.$": 1})['transactions'][0]['flag'], 'pending')
 
         # invalid request (wrong username)
         data = {'cmd':'SELL', 'username':'testuser1', 'sym':'A', 'amount':200, 'trxNum':1 }

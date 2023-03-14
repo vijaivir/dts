@@ -11,7 +11,7 @@ async def createCommand(line, count):
     trxNum = count
     cmd = c[0].split(" ")[1]
 
-    print(cmd, trxNum)
+    #print(cmd, trxNum)
     
     if(cmd == "QUOTE"):
         return requests.post(apiUrl + "/quote", json={'cmd':cmd, 'username':c[1], 'sym':c[2]})
