@@ -24,10 +24,12 @@ def quote():
     share_changed = random.choice([0,1])
     if share_changed == 1:
         # stock price increased
-        share_price += random.uniform(0.0, share_price*0.35)
+        share_price += random.uniform(0.0, share_price*0.15)
     else:
         # stock price decreased
         share_price -= random.uniform(0.0, share_price*0.15)
+        if share_price < 0.01:
+            share_price = 0.01
     res = {
         "price": "%.2f" % share_price,
         "cryptokey": "1wb2DqmVTnPYxw6fNtql5qKYkEQ"
