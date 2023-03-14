@@ -1,5 +1,5 @@
 import unittest
-from api import app, client
+from api import app, client, update_stocks
 import time
 
 class UnitTest(unittest.TestCase):
@@ -228,7 +228,7 @@ class UnitTest(unittest.TestCase):
     def test_sell(self):
         user = {
             'username':"testuser",
-            'stocks':[{'sym':'A', 'amount':500}],
+            'stocks':[{'sym':'A', 'amount':500, 'share':100}],
             'transactions':[]
         }
         self.user_table.insert_one(user)
@@ -237,6 +237,8 @@ class UnitTest(unittest.TestCase):
         data = {'cmd':'SELL', 'username':'testuser', 'sym':'A', 'amount':200, 'trxNum':1 }
         self.client.post('/sell', json=data)
         self.assertEqual(self.user_table.count_documents({}), 1)
+        # for x in self.user_table.find():
+        #     print(x)
         tx_filter = {"username": data['username'], "transactions.command": "SELL"}
         self.assertEqual(self.user_table.find_one(tx_filter, {"transactions.$": 1})['transactions'][0]['flag'], 'pending')
 
@@ -247,7 +249,7 @@ class UnitTest(unittest.TestCase):
 
         # invalid request (insufficient stock)
         self.transaction_table.drop()
-        data = {'cmd':'SELL', 'username':'testuser', 'sym':'A', 'amount':600, 'trxNum':1 }
+        data = {'cmd':'SELL', 'username':'testuser', 'sym':'A', 'amount':30000, 'trxNum':1 }
         self.client.post('/sell', json=data)
         self.assertEqual(self.transaction_table.find_one({'username':'testuser', 'type':'errorEvent'})['error'], 'Insufficient stock amount.')
 
@@ -411,6 +413,19 @@ class UnitTest(unittest.TestCase):
         self.user_table.insert_one(user)
         data = {'cmd':'DUMPLOG', 'filename':'file', 'username':'testuser', 'trxNum':1 }
         self.client.post('/dumplog', json=data)
+
+    def test_update_stocks(self):
+        user = {
+            'username':"testuser",
+            'funds':500,
+            'reserved_sell':[],
+            'stocks':[{'sym':'A', 'amount':100, 'share':3}],
+            'transactions':[]
+        }
+        self.user_table.insert_one(user)
+        update_stocks("A", 50, 'testuser')
+        self.assertEqual(self.user_table.find_one({'username':'testuser'})['stocks'][0]['amount'], 150)
+
 
 if __name__ == '__main__':
     unittest.main()

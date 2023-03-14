@@ -1,0 +1,38 @@
+<?xml version="1.0" ?>
+<log>
+	<accountTransaction>
+		<timestamp>1678767203.889005</timestamp>
+		<transactionNum>3</transactionNum>
+		<command>BUY</command>
+		<username>testuser</username>
+		<server>TS1</server>
+		<amount>500</amount>
+		<stockSymbol>A</stockSymbol>
+	</accountTransaction>
+	<accountTransaction>
+		<timestamp>1678767203.8890061</timestamp>
+		<transactionNum>3</transactionNum>
+		<command>SELL</command>
+		<username>testuser</username>
+		<server>TS1</server>
+		<amount>500</amount>
+		<stockSymbol>A</stockSymbol>
+	</accountTransaction>
+	<accountTransaction>
+		<timestamp>1678767203.8890061</timestamp>
+		<transactionNum>3</transactionNum>
+		<command>BUY</command>
+		<username>testuser</username>
+		<server>TS1</server>
+		<amount>500</amount>
+		<stockSymbol>A</stockSymbol>
+	</accountTransaction>
+	<errorEvent>
+		<timestamp>1678767203.8890061</timestamp>
+		<transactionNum>3</transactionNum>
+		<command>SELL</command>
+		<username>testuser</username>
+		<server>TS1</server>
+		<errorMessage>this is an error</errorMessage>
+	</errorEvent>
+</log>

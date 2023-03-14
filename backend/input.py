@@ -3,7 +3,7 @@ import sys
 import asyncio
 import time
 
-apiUrl = "http://localhost:5001"
+apiUrl = "http://localhost"
 
 
 async def createCommand(line, count):

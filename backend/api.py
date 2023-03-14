@@ -91,11 +91,88 @@ def quote(sym, username):
 # also executes any triggers
 def update_stocks(sym, price, username):
     # if the user owns stock (sym) update the amount based on their shares
+    stock_filter = {"username": username, "stocks.sym": sym}
+    stock_owned = user_table.find_one(stock_filter, {"stocks.$": 1})
+
+    # update stocks[]
+    if stock_owned:
+        share = stock_owned['stocks'][0]['share']
+        new_amount = float(price) * float(share)
+        user_table.update_one(stock_filter, {"$set": {"stocks.$.amount": new_amount}})
 
     # check reserved_buy for any triggers and execute
+    buy_filter = {"username": username, "reserved_buy.sym": sym, "reserved_buy.trigger": {"$exists": True}}
+    set_buy = user_table.find_one(buy_filter, {"reserved_buy.$": 1})
+
+    if set_buy:
+        # check if price is less than or equal to trigger price
+        buy_trigger = set_buy['reserved_buy'][0]['trigger']
+        buy_amount = set_buy['reserved_buy'][0]['amount']
+        if float(price) <= buy_trigger:
+            # buy the stock
+
+            # check if user owns the stock already
+            stock_owned = user_table.find_one(stock_filter, {"stocks.$": 1})
+            if stock_owned:
+                # update stock
+                new_share = float(buy_amount) // float(price)
+                amount_owned = stock_owned['stocks'][0]['amount']
+                share_owned = stock_owned['stocks'][0]['share']
+                user_table.update_one(stock_filter, {"$set": {"stocks.$.amount": float(buy_amount) + float(amount_owned)}})
+                user_table.update_one(stock_filter, {"$set": {"stocks.$.share": float(share_owned) + float(new_share)}} )
+            else:
+                # create a new stock
+                user_table.update_one(filter, {"$push": { "stocks": {'sym':sym, 'amount':buy_amount, 'share':new_share}}})
+            
+            # remove from reserved_buy
+            user_table.update_one({"username": username, "reserved_buy.sym": sym}, {"$pull": {"reserved_buy": {"sym": sym}}})
+
+            # create a new transaction
+            tx = {
+                "timestamp":time.time(),
+                "command":"AUTO_BUY",
+                "username": username,
+                "type": "automaticTransaction",
+                'server':"TS1",
+                "amount": buy_amount,
+                "sym":sym
+            }
+            transaction_table.insert_one(tx)
+            update = {"$push": {"transactions": tx}}
+            user_table.update_one({"username":username}, update)
+
 
     # check reserved_sell for any triggers and execute
-    pass
+    sell_filter = {"username": username, "reserved_sell.sym": sym, "reserved_sell.trigger": {"$exists": True}}
+    set_sell = user_table.find_one(sell_filter, {"reserved_sell.$": 1})
+
+    if set_sell:
+        # check if price is less than or equal to trigger price
+        sell_trigger = set_sell['reserved_sell'][0]['trigger']
+        if float(price) >= sell_trigger:
+            # sell the stock
+            amount_sold = set_sell['reserved_sell'][0]['amount']
+            user_funds = user_table.find_one({'username':username})['funds']
+            user_table.update_one({'username':username}, {"$set": {"funds": float(amount_sold) + float(user_funds)}})
+
+            # remove from reserved_sell
+            user_table.update_one({"username": username, "reserved_sell.sym": sym}, {"$pull": {"reserved_sell": {"sym": sym}}})
+
+            # create a new transaction
+            tx = {
+                "timestamp":time.time(),
+                "command":"AUTO_SELL",
+                "username": username,
+                "type": "automaticTransaction",
+                'server':"TS1",
+                "amount": amount_sold,
+                "sym":sym
+            }
+            transaction_table.insert_one(tx)
+            update = {"$push": {"transactions": tx}}
+            user_table.update_one({"username":username}, update)
+            
+    return "Updated Stocks"
 
 
 @app.route("/add", methods=["POST"])
@@ -210,8 +287,7 @@ def commit_buy():
         user_table.update_one(filter, {"$push": { "transactions": new_transaction(data)}})
 
         return 'Successfully committed.'
-
-
+    
 
 @app.route("/cancel_buy", methods=["POST"])
 def cancel_buy():
@@ -583,7 +659,24 @@ def dumplog():
                 ET.SubElement(transaction, "errorMessage").text = str(t["error"])
 
             elif t['type'] == 'quoteServer':
-                print('quote server event')
+                transaction = ET.SubElement(root, "quoteServer")
+                ET.SubElement(transaction, "timestamp").text = str((t["timestamp"]))
+                ET.SubElement(transaction, "username").text = t["username"]
+                ET.SubElement(transaction, "server").text = t["server"]
+                ET.SubElement(transaction, "stockSymbol").text = t["sym"]
+                ET.SubElement(transaction, "stockPrice").text = str(t["stockPrice"])
+                ET.SubElement(transaction, "quoteServerTime").text = str((t["quoteServerTime"]))
+                ET.SubElement(transaction, "cryptokey").text = t["cryptokey"]
+
+            elif t['type'] == 'automaticTransaction':
+                transaction = ET.SubElement(root, "automaticTransaction")
+                ET.SubElement(transaction, "timestamp").text = str((t["timestamp"]))
+                ET.SubElement(transaction, "username").text = t["username"]
+                ET.SubElement(transaction, "server").text = t["server"]
+                ET.SubElement(transaction, "stockSymbol").text = t["sym"]
+                ET.SubElement(transaction, "amount").text = str(t["amount"])
+                ET.SubElement(transaction, "command").text = t["command"]
+
 
         xml_str = ET.tostring(root)
         pretty_xml = xml.dom.minidom.parseString(xml_str).toprettyxml()
@@ -626,6 +719,15 @@ def dumplog():
                 ET.SubElement(transaction, "stockPrice").text = str(t["stockPrice"])
                 ET.SubElement(transaction, "quoteServerTime").text = str((t["quoteServerTime"]))
                 ET.SubElement(transaction, "cryptokey").text = t["cryptokey"]
+
+            elif t['type'] == 'automaticTransaction':
+                transaction = ET.SubElement(root, "automaticTransaction")
+                ET.SubElement(transaction, "timestamp").text = str((t["timestamp"]))
+                ET.SubElement(transaction, "username").text = t["username"]
+                ET.SubElement(transaction, "server").text = t["server"]
+                ET.SubElement(transaction, "stockSymbol").text = t["sym"]
+                ET.SubElement(transaction, "amount").text = str(t["amount"])
+                ET.SubElement(transaction, "command").text = t["command"]
 
 
         xml_str = ET.tostring(root)
