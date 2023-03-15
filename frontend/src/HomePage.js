@@ -1,16 +1,16 @@
-import Navbar from "react-bootstrap/Navbar";
-import Container from "react-bootstrap/Container";
+import navBar from "./components/NavBar";
+import React, {useState} from "react";
+import Login from "./LoginPage";
+import TradingPage from './TradingPage'
 
 function HomePage() {
+
+    const [username, setUsername] = useState('');
+    const [isLoggedIn, setIsLoggedIn] = useState(false);
+
     return(
         <div>
-            <div>
-                <Navbar bg="primary" expand="lg">
-                <Container>
-                    <Navbar.Brand href="#home" style={{color:"white"}} fixed='right'>Day Trading System</Navbar.Brand>
-                </Container>
-                </Navbar>
-            </div>
+            {isLoggedIn ? <><TradingPage username={username} isLoggedIn={isLoggedIn}></TradingPage></> : <Login setIsLoggedIn={setIsLoggedIn} setUsername={setUsername}></Login>}
         </div>
     );
 

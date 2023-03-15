@@ -2,25 +2,30 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import { Form } from 'react-bootstrap';
 import { Container } from 'react-bootstrap';
 import { Button } from 'react-bootstrap';
-import Navbar from 'react-bootstrap/Navbar';
+import React, { useState } from 'react';
+import NavBar from './components/NavBar';
 
-function LoginPage() {
+function LoginPage(props) {
+
+  const [username, setUsername] = useState('');
+
+  const handleSubmit = () => {
+    // Perform login logic here
+    console.log(username)
+    props.setIsLoggedIn(true);
+    props.setUsername(username)
+  };
+ 
   return (
     <div>
-      <div>
-        <Navbar bg="primary" expand="lg">
-          <Container>
-            <Navbar.Brand href="#home" style={{color:"white"}}>Day Trading System</Navbar.Brand>
-          </Container>
-        </Navbar>
-      </div>
+      <NavBar setIsLoggedIn={false}></NavBar>
       <div>
         <Container>
           <Form>
             <Form.Group className="mt-5" controlId="loginPage.username">
               <Form.Label className='mr-3'>Username</Form.Label>
-              <Form.Control className='mb-2 mt-2' type="email"/>
-              <Button> Login </Button>
+              <input type="text" value={username} onChange={(e) => setUsername(e.target.value)} />
+              <Button onClick={() => handleSubmit()}> Login </Button>
             </Form.Group>
           </Form>
         </Container>
