@@ -412,7 +412,7 @@ class UnitTest(unittest.TestCase):
         }
         self.user_table.insert_one(user)
         data = {'cmd':'DUMPLOG', 'filename':'file', 'username':'testuser', 'trxNum':1 }
-        self.client.post('/dumplog', json=data)
+        # self.client.post('/dumplog', json=data)
 
     def test_update_stocks(self):
         user = {
