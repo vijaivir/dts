@@ -74,8 +74,8 @@ def get_quote():
 
 def quote(sym, username):
     filter = {"username":username}
-    quote_price = requests.get('http://fe26-2604-3d08-2679-2000-c58a-51ec-8599-b312.ngrok.io/quote')
-    #quote_price = requests.get('http://localhost:5000/quote')
+    # quote_price = requests.get('http://fe26-2604-3d08-2679-2000-c58a-51ec-8599-b312.ngrok.io/quote')
+    quote_price = requests.get('http://quoteserver:5001/quoteserver/quote')
     res = quote_price.json()
     res['username'] = username
     res['cmd'] = "QUOTE"

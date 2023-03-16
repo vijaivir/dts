@@ -1,16 +1,10 @@
 from flask import Flask, jsonify
-# from pyngrok import ngrok
 import random
 
-# ngrok.set_auth_token("2MNvxD4C2f6zFT3cyIJJPJUg46K_7soQMKgoMqZFvGhsAMSXo")
-# public_url = ngrok.connect(5000).public_url
-# print("PUBLIC URL:", public_url)
-# port_no = 5000
 app = Flask(__name__)
 
-
 share_price = None
-@app.route("/quote", methods=["GET", "POST"])
+@app.route("/quoteserver/quote", methods=["GET", "POST"])
 def quote():
     global share_price
 
@@ -38,4 +32,4 @@ def quote():
 
 
 if __name__ == "__main__":
-    app.run(port=5000)
+    app.run(host="0.0.0.0")
