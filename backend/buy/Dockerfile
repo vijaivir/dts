@@ -2,10 +2,11 @@ FROM python:3.9
 
 WORKDIR /backend/buy
 
-COPY . .
+COPY ./buy/buyservice.py .
+COPY ../requirements.txt .
 
 RUN pip install -r requirements.txt
 
-EXPOSE 5001
+EXPOSE 5000
 
-CMD gunicorn --bind 0.0.0.0:5001 buyservice:app
+CMD gunicorn --bind 0.0.0.0:5000 buyservice:app
