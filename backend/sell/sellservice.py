@@ -570,6 +570,11 @@ def recent_transaction(username, cmd, timestamp):
         return tx[len(tx) - 1]['transaction']
     return {}
 
+@app.route("/display_summary", methods=["POST"])
+def display_summary():
+    data = request.json
+    filter = {'username':data['username']}
+    return str(user_table.find_one(filter))
 
 
 if __name__ =="__main__":
