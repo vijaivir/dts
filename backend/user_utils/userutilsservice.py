@@ -410,6 +410,6 @@ def display_summary():
     data = request.json
     filter = {'username':data['username']}
     return str(user_table.find_one(filter))
-
+    #.
 if __name__ =="__main__":
     app.run(host="0.0.0.0", debug=True)
