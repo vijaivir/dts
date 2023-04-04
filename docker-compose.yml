@@ -27,6 +27,13 @@ services:
     ports:
       - "5000"
 
+  backend_userutils:
+    build:
+      context: ./backend
+      dockerfile: ./user_utils/Dockerfile
+    ports:
+      - "5000"
+
   quoteserver:
     build:
       context: ./quoteserver
