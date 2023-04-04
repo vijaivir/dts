@@ -4,4 +4,3 @@ gunicorn
 requests
 grequests
 redis
-flask-cors
