@@ -11,7 +11,8 @@ def quote():
     if share_price is None:
         share_price = random.uniform(20.0,50.0)
         res = {
-            "price": "%.2f" % share_price
+            "price": "%.2f" % share_price,
+            "cryptokey": "1wb2DqmVTnPYxw6fNtql5qKYkEQ"
         }
         return jsonify(res)
 
