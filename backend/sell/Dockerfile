@@ -4,6 +4,7 @@ WORKDIR /backend/sell
 
 COPY ./sell/sellservice.py .
 COPY ../requirements.txt .
+COPY ../user_utils/userutilsservice.py .
 
 RUN pip install -r requirements.txt
 
