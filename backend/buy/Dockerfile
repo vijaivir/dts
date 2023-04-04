@@ -4,6 +4,7 @@ WORKDIR /backend/buy
 
 COPY ./buy/buyservice.py .
 COPY ../requirements.txt .
+COPY ../user_utils/userutilsservice.py .
 
 RUN pip install -r requirements.txt
 ENV PYTHONUNBUFFERED 1
