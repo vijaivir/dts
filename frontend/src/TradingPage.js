@@ -1,6 +1,7 @@
 import CollapsibleList from "./components/CollapsibleList";
 import styles from "./styles.module.css"
 import NavBar from "./components/NavBar";
+import TradingPanel from "./components/TradingPanel";
 
 function TradingPage(props) {
 
@@ -27,7 +28,7 @@ function TradingPage(props) {
             <NavBar username={props.username} isLoggedIn={props.isLoggedIn}></NavBar>
             <div className={styles.container}>
                 <div className={styles.panel}>
-                    
+                    <TradingPanel></TradingPanel>               
                 </div>   
                 <div className={styles.panel}>
                     <CollapsibleList type={'Pending Transactions'} list={pendingTransactions}></CollapsibleList>
