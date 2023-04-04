@@ -4,6 +4,10 @@ import xml.etree.ElementTree as ET
 import xml.dom.minidom
 import time
 import requests
+import redis
+import json 
+
+redis_client = redis.Redis(host="redis_client", port=6379,db=0)
 
 # container name for mongo db
 client = MongoClient("mongodb://mongo_database", 27017)
@@ -26,6 +30,21 @@ def get_quote():
 def quote(sym, username):
     filter = {"username":username}
     # quote_price = requests.get('http://fe26-2604-3d08-2679-2000-c58a-51ec-8599-b312.ngrok.io/quote')
+    cached_quote = redis_client.get(sym)
+    if cached_quote is not None:
+        print("FROM CACHE")
+        cached_quote = json.loads(cached_quote)
+        cached_quote['username'] = username
+        cached_quote['sym'] = sym
+        res = cached_quote
+    else:
+        quote_price = requests.get('http://quoteserver:5001/quoteserver/quote')
+        res = quote_price.json()       
+        res['quoteServerTime'] = time.time()
+        res['cmd'] = "QUOTE"
+        redis_client.set(sym, json.dumps(res))
+        redis_client.expire(sym, 120)
+    
     quote_price = requests.get('http://quoteserver:5001/quoteserver/quote')
     res = quote_price.json()
     res['username'] = username
@@ -101,6 +120,8 @@ def update_stocks(sym, price, username):
     if set_sell:
         # check if price is less than or equal to trigger price
         sell_trigger = set_sell['reserved_sell'][0]['trigger']
+        if sell_trigger == '':
+            return "Updated Stocks"
         if float(price) >= float(sell_trigger):
             # sell the stock
             amount_sold = set_sell['reserved_sell'][0]['amount']

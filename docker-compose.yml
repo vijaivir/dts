@@ -6,6 +6,13 @@ services:
     ports:
       - "27017:27017"
 
+  redis:
+    build:
+      context: ./redis
+    container_name: redis_client
+    ports:
+      - "6379:6379"
+
   backend_buy:
     build:
       context: ./backend

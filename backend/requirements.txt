@@ -3,3 +3,4 @@ pymongo
 gunicorn
 requests
 grequests
+redis

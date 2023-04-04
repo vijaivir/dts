@@ -4,6 +4,13 @@ import xml.etree.ElementTree as ET
 import xml.dom.minidom
 import time
 import requests
+import redis
+import json
+
+print("STARTING")
+
+# container name for redis cache
+redis_client = redis.Redis(host="redis_client", port=6379,db=0)
 
 # container name for mongo db
 client = MongoClient("mongodb://mongo_database", 27017)
@@ -20,18 +27,30 @@ app = Flask(__name__)
 def get_quote():
     data = request.json
     quote_price = quote(data['sym'], data['username'])
+
     return quote_price
 
 
 def quote(sym, username):
     filter = {"username":username}
     # quote_price = requests.get('http://fe26-2604-3d08-2679-2000-c58a-51ec-8599-b312.ngrok.io/quote')
-    quote_price = requests.get('http://quoteserver:5001/quoteserver/quote')
-    res = quote_price.json()
-    res['username'] = username
-    res['cmd'] = "QUOTE"
-    res['sym'] = sym
-    res['quoteServerTime'] = time.time()
+    cached_quote = redis_client.get(sym)
+    if cached_quote is not None:
+        print("FROM CACHE")
+        cached_quote = json.loads(cached_quote)
+        cached_quote['username'] = username
+        cached_quote['sym'] = sym
+        res = cached_quote
+    else:
+        quote_price = requests.get('http://quoteserver:5001/quoteserver/quote')
+        res = quote_price.json()       
+        res['quoteServerTime'] = time.time()
+        res['cmd'] = "QUOTE"
+        redis_client.set(sym, json.dumps(res))
+        redis_client.expire(sym, 120)
+
+        res['username'] = username
+        res['sym'] = sym
     tx = new_transaction(res)
     user_table.update_one(filter, {"$push": {"transactions": tx}})
     update_stocks(sym, res['price'], username)
@@ -158,7 +177,7 @@ def buy():
     filter = {"username":data['username']}
     # check if account exists
     if not account_exists(data['username']):
-        return str(new_transaction(data, error="The specified user does not exist."))
+        return str(new_transaction(data, error="The specified user does not exist!"))
 
     # check if sufficient funds to buy
     funds = user_table.find_one(filter)['funds']
@@ -187,7 +206,7 @@ def commit_buy():
 
     # check if account exists
     if not account_exists(data['username']):
-        return str(new_transaction(data, error="The specified user does not exist."))
+        return str(new_transaction(data, error="The specified user does not exist!"))
     
     # get the most recent BUY transaction with the pending flag
     timestamp = time.time()
@@ -238,7 +257,7 @@ def cancel_buy():
 
     # check if account exists
     if not account_exists(data['username']):
-        return str(new_transaction(data, error="The specified user does not exist."))
+        return str(new_transaction(data, error="The specified user does not exist!"))
     
     # get the most recent transaction with the pending flag
     timestamp = time.time()
@@ -267,7 +286,7 @@ def cancel_buy():
 def set_buy_amount():
     data = request.json
     if not account_exists(data['username']):
-        new_transaction(data, error="The specified user does not exist.")
+        new_transaction(data, error="The specified user does not exist!")
     filter = {"username":data['username']}
     
     reserve_amount = data['amount']
@@ -298,7 +317,7 @@ def set_buy_trigger():
     data = request.json
     filter = {"username":data['username']}
     if not account_exists(data['username']):
-        new_transaction(data, error="The specified user does not exist.")
+        new_transaction(data, error="The specified user does not exist!")
 
     # see if the user has a previous set buy for the stock requested
     valid_set_buy = user_table.find_one({
@@ -330,7 +349,7 @@ def cancel_set_buy():
     data = request.json
     filter = {"username":data['username']}
     if not account_exists(data['username']):
-        new_transaction(data, error="The specified user does not exist.")
+        new_transaction(data, error="The specified user does not exist!")
     valid_reserve = user_table.find_one({"username": data['username'], "reserved_buy.sym": data['sym']}, 
                                         {"_id": 0, "reserved_buy.$": 1})
 
@@ -362,7 +381,7 @@ def dumplog():
     #username was provided
     if 'username' in data:
         if not account_exists(data['username']):
-            return "The specified user does not exist."
+            return "The specified user does not exist!"
 
         filter = {"username":data['username']}
         user_transactions = user_table.find_one(filter)['transactions']
@@ -489,7 +508,7 @@ Parameters: username (str)
 '''
 def account_exists(username):
     query = {"username":username}
-    if user_table.find_one(query):
+    if user_table.find_one({"username": username}):
         return True
     return False
 
