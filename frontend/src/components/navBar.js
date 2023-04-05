@@ -7,7 +7,7 @@ function NavBar(props) {
     const renderUserNav = () =>{
         return (
             <Navbar.Collapse className="justify-content-end" style={{color:"white"}}>
-                <UserNavBarMenu username={props.username}></UserNavBarMenu>
+                <UserNavBarMenu username={props.username} funds={props.funds}></UserNavBarMenu>
             </Navbar.Collapse>
         )
     }
