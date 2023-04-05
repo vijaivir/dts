@@ -16,7 +16,7 @@ const CollapsibleList = (props) => {
         {isOpen &&
           <ul>
             {props.list.map((item, index) => (
-              <li key={index}>{item.operation} {item.sym} {item.amount} {item.date}</li>
+              <li key={index}>{item.command} {item.sym} {item.amount} {item.timestamp}</li>
             ))}
           </ul>
         }

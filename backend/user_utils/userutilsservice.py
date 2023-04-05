@@ -7,6 +7,15 @@ import requests
 import redis
 import json
 from flask_cors import CORS
+import json
+from bson.objectid import ObjectId
+
+class JSONEncoder(json.JSONEncoder):
+    def default(self, o):
+        if isinstance(o, ObjectId):
+            return str(o)
+        return json.JSONEncoder.default(self, o)
+
 
 
 # container name for redis cache
@@ -409,7 +418,7 @@ def dumplog():
 def display_summary():
     data = request.json
     filter = {'username':data['username']}
-    return str(user_table.find_one(filter))
+    return JSONEncoder().encode(user_table.find_one(filter))
 
 if __name__ =="__main__":
     app.run(host="0.0.0.0", debug=True)

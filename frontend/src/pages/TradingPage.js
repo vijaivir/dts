@@ -45,7 +45,7 @@ function TradingPage(props) {
       const userInfo = await axios.post(apiUserUtilsUrl + "display_summary", payload);
       console.log(userInfo.data)
       //problem with format of data, str using '' instead of "", change backend to send jsonify(obj) not a str(obj)
-      parseUserData(JSON.parse(userInfo.data));
+      parseUserData(userInfo.data);
       console.log(userInfo);
     } catch (error) {
       console.error("Error fetching user info:", error);
