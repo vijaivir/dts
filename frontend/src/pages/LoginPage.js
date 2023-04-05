@@ -6,6 +6,8 @@ import React, { useState } from "react";
 import NavBar from "../components/NavBar";
 import axios from "axios";
 
+const apiUserUtilsUrl = "http://127.0.0.1/user_utils/";
+
 function LoginPage(props) {
   const [username, setUsername] = useState("");
 
@@ -14,10 +16,14 @@ function LoginPage(props) {
     console.log(username);
     props.setIsLoggedIn(true);
     props.setUsername(username);
-    // const payload = {
-    //   "username": username,
-    //   ""
-    // }
+    const payload = {
+      username: username,
+      cmd: 'ADD', 
+      amount: 0,
+      trxNum: 1,
+    }
+    const response = await axios.post(apiUserUtilsUrl + "add", payload);
+    console.log(response)
   };
 
   return (

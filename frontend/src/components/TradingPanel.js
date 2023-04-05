@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from "react";
 // import { getQuoteService } from "../service";
 import axios from "axios";
-const apiUrl = "http://127.0.0.1/user_utils/";
+const apiUserUtilsUrl = "http://127.0.0.1/user_utils/";
+const apiBuyUrl = "http://127.0.0.1/buy/";
+const apiSellUrl = "http://127.0.0.1/sell/";
+
 const TradingPanel = (props) => {
   const [operation, setOperation] = useState("Buy");
   const [symbol, setSymbol] = useState("");
@@ -25,17 +28,74 @@ const TradingPanel = (props) => {
       sym: symbol,
     };
     console.log(symbol);
-    const quote = await axios.post(apiUrl + "/quote", payload);
+    const quote = await axios.post(apiUserUtilsUrl + "quote", payload);
+    console.log(quote)
     setStockPrice(quote.data.price);
   };
 
-  const submitOperation = () => {
-    //form submitted
-    setSubmitted(true);
+  const submitOperation = async () => {
 
-    //decipher what service to call from state
-    //TODO make sure this state cannot be changed from form after submit
     console.log(operation, symbol, amount, point, stockPrice);
+
+    if(operation == "Buy"){
+      if(props.funds >= amount){
+        //check if there is enough funds
+        if(point == stockPrice){
+          //buy current price
+          const payload = {
+            cmd: operation,
+            username: props.username,
+            sym: symbol,
+            amount: amount,
+            trxNum: 1,
+          }
+          const response = await axios.post(apiBuyUrl + "buy", payload);
+          console.log(response)
+          setSubmitted(true);
+        }else{
+          //this is a setBuy operation
+          // const payloadAmount = {
+          //   cmd: operation,
+          //   username: props.username,
+          //   sym: symbol,
+          //   amount: amount,
+          //   trxNum: 1,
+          // }
+          // const payloadTrigger = {
+          //   cmd: operation,
+          //   username: props.username,
+          //   sym: symbol,
+          //   amount: stockPrice,
+          //   trxNum: 1,
+          // }
+          // const setBuyAmountResponse = await axios.post(apiBuyUrl + "set_buy_amount", payloadAmount);
+          // const setBuyTriggerResponse = await axios.post(apiBuyUrl + "set_buy_trigger", payloadTrigger);
+        }
+      }else{
+        //not enough funds to buy this amount!
+        console.log("too broke to complete transaction")
+      }
+      
+        
+    }
+
+    if(operation == "Sell"){
+      //check their holdings
+      if(point == stockPrice){
+        //sell current price
+        const payload = {
+          cmd: operation,
+          username: props.username,
+          sym: symbol,
+          amount: amount,
+          trxNum: 1,
+        }
+        const response = await axios.post(apiSellUrl + "sell", payload);
+        console.log(response)
+      }
+        
+    }
+      
   };
 
   const commitOperation = () => {
