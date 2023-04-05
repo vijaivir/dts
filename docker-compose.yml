@@ -1,10 +1,42 @@
 services:
-  database:
+  mongo1:
     build:
       context: ./mongodb
-    container_name: mongo_database
+    container_name: mongo_primary
+    command: mongod --replSet rs0 --bind_ip_all
     ports:
       - "27017:27017"
+    networks:
+      - mongo-network
+    depends_on:
+      - mongo2
+      - mongo3
+    links:
+      - mongo2
+      - mongo3
+    restart: always
+
+  mongo2:
+    build:
+      context: ./mongodb
+    container_name: mongo_secondary_1
+    command: mongod --replSet rs0 --bind_ip_all
+    ports:
+      - "27018:27017"
+    networks:
+      - mongo-network
+    restart: always
+
+  mongo3:
+    build:
+      context: ./mongodb
+    container_name: mongo_secondary_2
+    command: mongod --replSet rs0 --bind_ip_all
+    ports:
+      - "27019:27017"
+    networks:
+      - mongo-network
+    restart: always
 
   redis:
     build:
@@ -44,3 +76,7 @@ services:
 
     ports:
       - "80:80"
+
+networks:
+  mongo-network:
+    driver: bridge
