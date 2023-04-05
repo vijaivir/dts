@@ -7,6 +7,8 @@ const CollapsibleList = (props) => {
     setIsOpen(!isOpen);
   };
 
+  console.log(props.list)
+
   return (
     <>
       <div>

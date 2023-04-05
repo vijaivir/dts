@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 // import { getQuoteService } from "../service";
 import axios from "axios";
+import Countdown from "./countdown";
+
 const apiUserUtilsUrl = "http://127.0.0.1/user_utils/";
 const apiBuyUrl = "http://127.0.0.1/buy/";
 const apiSellUrl = "http://127.0.0.1/sell/";
@@ -37,13 +39,14 @@ const TradingPanel = (props) => {
 
     console.log(operation, symbol, amount, point, stockPrice);
 
-    if(operation == "Buy"){
+    if(operation === "Buy"){
       if(props.funds >= amount){
         //check if there is enough funds
-        if(point == stockPrice){
+        if(point === stockPrice){
+          setSubmitted(true);
           //buy current price
           const payload = {
-            cmd: operation,
+            cmd: 'BUY',
             username: props.username,
             sym: symbol,
             amount: amount,
@@ -51,7 +54,6 @@ const TradingPanel = (props) => {
           }
           const response = await axios.post(apiBuyUrl + "buy", payload);
           console.log(response)
-          setSubmitted(true);
         }else{
           //this is a setBuy operation
           // const payloadAmount = {
@@ -75,16 +77,15 @@ const TradingPanel = (props) => {
         //not enough funds to buy this amount!
         console.log("too broke to complete transaction")
       }
-      
         
     }
 
-    if(operation == "Sell"){
+    if(operation === "Sell"){
       //check their holdings
-      if(point == stockPrice){
+      if(point === stockPrice){
         //sell current price
         const payload = {
-          cmd: operation,
+          cmd: 'SELL',
           username: props.username,
           sym: symbol,
           amount: amount,
@@ -98,12 +99,37 @@ const TradingPanel = (props) => {
       
   };
 
-  const commitOperation = () => {
+  const commitOperation = async () => {
     //form commited
     setCommited(true);
+    setSubmitted(false);
 
     //decipher what service to call from state
     console.log("the operation was committed");
+
+    if(operation === "Buy"){
+
+      const payload = {
+        cmd: 'COMMIT_BUY',
+        username: props.username,
+        trxNum: 1,
+      }
+      const response = await axios.post(apiBuyUrl + "commit_buy", payload);
+      console.log(response)
+      
+    }
+    
+    if(operation === "Sell"){
+
+      const payload = {
+        cmd: 'COMMIT_SELL',
+        username: props.username,
+        trxNum: 1,
+      }
+      const response = await axios.post(apiSellUrl + "commit_sell", payload);
+      console.log(response)
+      
+    }
   };
 
   const renderSubmitButtons = () => {
@@ -172,6 +198,7 @@ const TradingPanel = (props) => {
           <button onClick={() => setPoint(stockPrice)}>set to current</button>
         </div>
         <div>{submitted ? renderCommitButtons() : renderSubmitButtons()}</div>
+        <div>{submitted ? <Countdown></Countdown> : <></>}</div>
       </div>
     </>
   );

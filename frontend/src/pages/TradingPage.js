@@ -21,7 +21,7 @@ function TradingPage(props) {
     getUserInfo()
   }, []);
 
-  const parseUserData = async (data, callback) => {
+  const parseUserData = async (data) => {
 
     setFunds(data.funds)
     setStockList(data.stocks)
