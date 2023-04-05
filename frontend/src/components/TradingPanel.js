@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 // import { getQuoteService } from "../service";
 import axios from "axios";
-const apiUrl = "http://127.0.0.1/buy";
+const apiUrl = "http://127.0.0.1/user_utils/";
 const TradingPanel = (props) => {
   const [operation, setOperation] = useState("Buy");
   const [symbol, setSymbol] = useState("");
