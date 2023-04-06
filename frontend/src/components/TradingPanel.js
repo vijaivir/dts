@@ -31,75 +31,77 @@ const TradingPanel = (props) => {
     };
     console.log(symbol);
     const quote = await axios.post(apiUserUtilsUrl + "quote", payload);
-    console.log(quote)
+    console.log(quote);
     setStockPrice(quote.data.price);
   };
 
   const submitOperation = async () => {
-
     console.log(operation, symbol, amount, point, stockPrice);
 
-    if(operation === "Buy"){
-      if(props.funds >= amount){
+    if (operation === "Buy") {
+      if (props.funds >= amount) {
         //check if there is enough funds
-        if(point === stockPrice){
+        if (point === stockPrice) {
           setSubmitted(true);
           //buy current price
           const payload = {
-            cmd: 'BUY',
+            cmd: "BUY",
             username: props.username,
             sym: symbol,
             amount: amount,
             trxNum: 1,
-          }
+          };
           const response = await axios.post(apiBuyUrl + "buy", payload);
-          console.log(response)
-        }else{
+          console.log(response);
+        } else {
           //this is a setBuy operation
           setSubmitted(true);
           const payloadAmount = {
-            cmd: 'SET_BUY_AMOUNT',
+            cmd: "SET_BUY_AMOUNT",
             username: props.username,
             sym: symbol,
             amount: amount,
             trxNum: 1,
-          }
+          };
           const payloadTrigger = {
-            cmd: 'SET_BUY_TRIGGER',
+            cmd: "SET_BUY_TRIGGER",
             username: props.username,
             sym: symbol,
             amount: stockPrice,
             trxNum: 1,
-          }
-          const setBuyAmountResponse = await axios.post(apiBuyUrl + "set_buy_amount", payloadAmount);
-          const setBuyTriggerResponse = await axios.post(apiBuyUrl + "set_buy_trigger", payloadTrigger);
+          };
+          const setBuyAmountResponse = await axios.post(
+            apiBuyUrl + "set_buy_amount",
+            payloadAmount
+          );
+          const setBuyTriggerResponse = await axios.post(
+            apiBuyUrl + "set_buy_trigger",
+            payloadTrigger
+          );
 
-          console.log(setBuyAmountResponse, setBuyTriggerResponse)
+          console.log(setBuyAmountResponse, setBuyTriggerResponse);
         }
-      }else{
+      } else {
         //not enough funds to buy this amount!
-        console.log("too broke to complete transaction")
+        console.log("too broke to complete transaction");
       }
-        
     }
 
-    if(operation === "Sell"){
+    if (operation === "Sell") {
       //check their holdings
-      if(point === stockPrice){
+      if (point === stockPrice) {
         //sell current price
         const payload = {
-          cmd: 'SELL',
+          cmd: "SELL",
           username: props.username,
           sym: symbol,
           amount: amount,
           trxNum: 1,
-        }
+        };
         const response = await axios.post(apiSellUrl + "sell", payload);
-        console.log(response)
+        console.log(response);
       }
-        
     }
-      
   };
 
   const commitOperation = async () => {
@@ -110,28 +112,24 @@ const TradingPanel = (props) => {
     //decipher what service to call from state
     console.log("the operation was committed");
 
-    if(operation === "Buy"){
-
+    if (operation === "Buy") {
       const payload = {
-        cmd: 'COMMIT_BUY',
+        cmd: "COMMIT_BUY",
         username: props.username,
         trxNum: 1,
-      }
+      };
       const response = await axios.post(apiBuyUrl + "commit_buy", payload);
-      console.log(response)
-      
+      console.log(response);
     }
-    
-    if(operation === "Sell"){
 
+    if (operation === "Sell") {
       const payload = {
-        cmd: 'COMMIT_SELL',
+        cmd: "COMMIT_SELL",
         username: props.username,
         trxNum: 1,
-      }
+      };
       const response = await axios.post(apiSellUrl + "commit_sell", payload);
-      console.log(response)
-      
+      console.log(response);
     }
   };
 
@@ -147,10 +145,20 @@ const TradingPanel = (props) => {
     );
   };
 
+  const cancelBuy = async () => {
+    setSubmitted(false);
+    const payload = {
+      username: props.username,
+      cmd: "CANCEL_BUY",
+      trxNum: 1,
+    };
+    const res = await axios.post(apiBuyUrl + "cancel_buy", payload);
+  };
+
   const renderCommitButtons = () => {
     return (
       <div>
-        <button onClick={() => setSubmitted(false)}>Cancel</button>
+        <button onClick={cancelBuy}>Cancel</button>
         <button onClick={() => commitOperation()}>Commit {operation}</button>
       </div>
     );
