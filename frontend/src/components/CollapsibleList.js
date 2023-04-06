@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-
+import React, { useState } from "react";
+import axios from "axios";
 const CollapsibleList = (props) => {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -7,21 +7,45 @@ const CollapsibleList = (props) => {
     setIsOpen(!isOpen);
   };
 
-  console.log(props.list)
+  console.log(props.list);
+
+  const cancelSetBuy = async (item) => {
+    const payload = {
+      username: props.username,
+      sym: item.sym,
+      cmd: "CANCEL_SET_BUY",
+      trxNum: 1,
+    };
+    const res = await axios.post(
+      "http://localhost/buy/cancel_set_buy",
+      payload
+    );
+  };
 
   return (
     <>
       <div>
         <button onClick={toggleList}>
-          {isOpen ? '-' : '+'} {props.type}
+          {isOpen ? "-" : "+"} {props.type}
         </button>
-        {isOpen &&
+        {isOpen && props.type === "Pending Transactions" ? (
           <ul>
             {props.list.map((item, index) => (
-              <li key={index}>{item.command} {item.sym} {item.amount} {item.timestamp}</li>
+              <li key={index}>
+                {item.command} {item.sym} {item.amount} {item.timestamp}{" "}
+                <button onClick={() => cancelSetBuy(item)}>Cancel</button>
+              </li>
             ))}
           </ul>
-        }
+        ) : (
+          <ul>
+            {props.list.map((item, index) => (
+              <li key={index}>
+                {item.command} {item.sym} {item.amount} {item.timestamp}
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
     </>
   );
