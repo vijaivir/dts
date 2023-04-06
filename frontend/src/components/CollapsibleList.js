@@ -28,21 +28,19 @@ const CollapsibleList = (props) => {
         <button onClick={toggleList}>
           {isOpen ? "-" : "+"} {props.type}
         </button>
-        {isOpen && props.type === "Pending Transactions" ? (
+        {isOpen && (
           <ul>
             {props.list.map((item, index) => (
-              <li key={index}>
-                {item.command} {item.sym} {item.amount} {item.timestamp}{" "}
-                <button onClick={() => cancelSetBuy(item)}>Cancel</button>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <ul>
-            {props.list.map((item, index) => (
-              <li key={index}>
-                {item.command} {item.sym} {item.amount} {item.timestamp}
-              </li>
+              <div style={{ display: "flex" }}>
+                <li key={index}>
+                  {item.command} {item.sym} {item.amount} {item.timestamp}
+                </li>
+                <div>
+                  {props.type === "Pending Transactions" && (
+                    <button onClick={() => cancelSetBuy(item)}>Cancel</button>
+                  )}
+                </div>
+              </div>
             ))}
           </ul>
         )}
