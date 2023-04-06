@@ -7,10 +7,7 @@ import { useEffect, useState } from "react";
 
 const apiUserUtilsUrl = "http://127.0.0.1/user_utils/";
 
-
-
 function TradingPage(props) {
-
   const [funds, setFunds] = useState(0);
   const [stockList, setStockList] = useState([]);
   const [reservedBuy, setReservedBuy] = useState([]);
@@ -18,7 +15,7 @@ function TradingPage(props) {
   const [transactions, setTransactions] = useState([]);
 
   useEffect(() => {
-    getUserInfo()
+    getUserInfo();
   }, []);
 
   const refreshUserInfo = () => {
@@ -27,37 +24,39 @@ function TradingPage(props) {
   };
 
   const parseUserData = async (data) => {
-
-    setFunds(data.funds)
-    setStockList(data.stocks)
-    setReservedBuy(data.reserved_buy)
-    setReservedSell(data.reserved_sell)
-    setTransactions(data.transactions)
-
-  }
+    setFunds(data.funds);
+    setStockList(data.stocks);
+    setReservedBuy(data.reserved_buy);
+    setReservedSell(data.reserved_sell);
+    setTransactions(data.transactions);
+  };
 
   const getUserInfo = async () => {
-
     const payload = {
       username: props.username,
       trxNum: 1,
-    }
+    };
 
     try {
-      const userInfo = await axios.post(apiUserUtilsUrl + "display_summary", payload);
-      console.log(userInfo)
-      parseUserData(userInfo.data)
-      console.log(funds)
-      
+      const userInfo = await axios.post(
+        apiUserUtilsUrl + "display_summary",
+        payload
+      );
+      console.log(userInfo);
+      parseUserData(userInfo.data);
+      console.log(funds);
     } catch (error) {
       console.error("Error fetching user info:", error);
     }
-
-  }
+  };
 
   return (
     <div>
-      <NavBar username={props.username} isLoggedIn={props.isLoggedIn} funds={funds}></NavBar>
+      <NavBar
+        username={props.username}
+        isLoggedIn={props.isLoggedIn}
+        funds={funds}
+      ></NavBar>
       <div className={styles.container}>
         <div className={styles.panel}>
           <TradingPanel username={props.username} funds={funds} refreshUserInfo={refreshUserInfo}></TradingPanel>
@@ -66,6 +65,7 @@ function TradingPage(props) {
           <CollapsibleList
             type={"Pending Transactions"}
             list={reservedBuy}
+            username={props.username}
             refreshUserInfo={refreshUserInfo}
           ></CollapsibleList>
           <CollapsibleList
