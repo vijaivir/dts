@@ -13,7 +13,7 @@ print("STARTING")
 redis_client = redis.Redis(host="redis_client", port=6379,db=0)
 
 # container name for mongo db
-client = MongoClient("mongodb://mongo_primary:27017,mongo_secondary1:27018,mongo_secondary2:27019/?replicaSet=rs0")
+client = MongoClient("mongodb://mongo_primary:27017,mongo_secondary_1:27018,mongo_secondary_2:27019/?replicaSet=rs0")
 #client = MongoClient()
 
 db = client.user_database
