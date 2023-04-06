@@ -59,7 +59,12 @@ function TradingPage(props) {
       ></NavBar>
       <div className={styles.container}>
         <div className={styles.panel}>
-          <TradingPanel username={props.username} funds={funds} refreshUserInfo={refreshUserInfo}></TradingPanel>
+          <TradingPanel
+            username={props.username}
+            funds={funds}
+            holdings={stockList}
+            refreshUserInfo={refreshUserInfo}
+          ></TradingPanel>
         </div>
         <div className={styles.panel}>
           <CollapsibleList

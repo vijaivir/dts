@@ -8,6 +8,8 @@ const apiBuyUrl = "http://127.0.0.1/buy/";
 const apiSellUrl = "http://127.0.0.1/sell/";
 
 const TradingPanel = (props) => {
+  const ownedStocks = props.holdings.map((stock) => stock.sym);
+
   const [operation, setOperation] = useState("Buy");
   const [symbol, setSymbol] = useState("App");
   const [amount, setAmount] = useState(0);
@@ -16,6 +18,7 @@ const TradingPanel = (props) => {
   const [submitted, setSubmitted] = useState(false);
   const [commited, setCommited] = useState(false);
 
+  const stocks = ["App", "Amz", "Bel", "Btc", "Eth", "Ggl"];
   useEffect(() => {
     props.refreshUserInfo()
   }, [submitted, commited, operation, symbol, amount, point, stockPrice]);
@@ -184,12 +187,14 @@ const TradingPanel = (props) => {
         <div>
           <span>Stock Symbol: </span>
           <select value={symbol} onChange={(e) => setSymbol(e.target.value)}>
-            <option value="App">App</option>
-            <option value="Amz">Amz</option>
-            <option value="Bel">Bel</option>
-            <option value="Btc">Btc</option>
-            <option value="Eth">Eth</option>
-            <option value="Ggl">Ggl</option>
+            {operation == "Buy" &&
+              stocks.map((stock) => {
+                return <option value={stock}>{stock}</option>;
+              })}
+            {operation == "Sell" &&
+              ownedStocks.map((stock) => {
+                return <option value={stock}>{stock}</option>;
+              })}
           </select>
         </div>
         <div>
