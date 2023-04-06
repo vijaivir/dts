@@ -21,6 +21,11 @@ function TradingPage(props) {
     getUserInfo()
   }, []);
 
+  const refreshUserInfo = () => {
+    console.log("rerendering")
+    getUserInfo();
+  };
+
   const parseUserData = async (data) => {
 
     setFunds(data.funds)
@@ -55,20 +60,23 @@ function TradingPage(props) {
       <NavBar username={props.username} isLoggedIn={props.isLoggedIn} funds={funds}></NavBar>
       <div className={styles.container}>
         <div className={styles.panel}>
-          <TradingPanel username={props.username} funds={funds}></TradingPanel>
+          <TradingPanel username={props.username} funds={funds} refreshUserInfo={refreshUserInfo}></TradingPanel>
         </div>
         <div className={styles.panel}>
           <CollapsibleList
             type={"Pending Transactions"}
             list={reservedBuy}
+            refreshUserInfo={refreshUserInfo}
           ></CollapsibleList>
           <CollapsibleList
             type={"Current Holdings"}
             list={stockList}
+            refreshUserInfo={refreshUserInfo}
           ></CollapsibleList>
           <CollapsibleList
             type={"Transaction History"}
             list={transactions}
+            refreshUserInfo={refreshUserInfo}
           ></CollapsibleList>
         </div>
       </div>

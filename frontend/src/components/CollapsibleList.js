@@ -1,7 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 const CollapsibleList = (props) => {
   const [isOpen, setIsOpen] = useState(false);
+
+  useEffect(() => {
+    props.refreshUserInfo()
+  }, [isOpen]);
 
   const toggleList = () => {
     setIsOpen(!isOpen);

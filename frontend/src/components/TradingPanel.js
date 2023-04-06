@@ -17,6 +17,10 @@ const TradingPanel = (props) => {
   const [commited, setCommited] = useState(false);
 
   useEffect(() => {
+    props.refreshUserInfo()
+  }, [submitted, commited, operation, symbol]);
+
+  useEffect(() => {
     //get a qoute for the price
     getQuote(symbol);
     //   getQuoteService(props.username, symbol);
