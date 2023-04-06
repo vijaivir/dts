@@ -45,7 +45,7 @@ const CollapsibleList = (props) => {
           <ul>
             {props.list.map((item, index) => (
               <li key={index}>
-                {item.command} {item.sym} {item.amount} {item.timestamp}
+                {item.command} {item.sym} {item.amount} {item.share} {item.timestamp}
               </li>
             ))}
           </ul>

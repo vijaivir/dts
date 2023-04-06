@@ -42,7 +42,7 @@ function TradingPage(props) {
         apiUserUtilsUrl + "display_summary",
         payload
       );
-      console.log(userInfo);
+      console.log("--------------", userInfo);
       parseUserData(userInfo.data);
       console.log(funds);
     } catch (error) {

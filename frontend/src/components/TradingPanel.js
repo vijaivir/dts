@@ -98,6 +98,7 @@ const TradingPanel = (props) => {
       //check their holdings
       if (point === stockPrice) {
         //sell current price
+        setSubmitted(true);
         const payload = {
           cmd: "SELL",
           username: props.username,
@@ -107,6 +108,32 @@ const TradingPanel = (props) => {
         };
         const response = await axios.post(apiSellUrl + "sell", payload);
         console.log(response);
+      } else {
+        //this is a setSell operation
+        setSubmitted(true);
+        const payloadAmount = {
+          cmd: "SET_SELL_AMOUNT",
+          username: props.username,
+          sym: symbol,
+          amount: amount,
+          trxNum: 1,
+        };
+        const payloadTrigger = {
+          cmd: "SET_SELL_TRIGGER",
+          username: props.username,
+          sym: symbol,
+          amount: stockPrice,
+          trxNum: 1,
+        };
+        const setSellAmountResponse = await axios.post(
+          apiSellUrl + "set_sell_amount",
+          payloadAmount
+        );
+        const setSellTriggerResponse = await axios.post(
+          apiSellUrl + "set_sell_trigger",
+          payloadTrigger
+        );
+        console.log(setSellAmountResponse, setSellTriggerResponse);
       }
     }
   };
@@ -212,7 +239,7 @@ const TradingPanel = (props) => {
           <span>{operation} Point: $</span>
           <input
             type="number"
-            value={point}
+            value={point}export
             onChange={(e) => setPoint(e.target.value)}
           />
           <button onClick={() => setPoint(stockPrice)}>set to current</button>
