@@ -20,6 +20,10 @@ const TradingPanel = (props) => {
 
   const stocks = ["App", "Amz", "Bel", "Btc", "Eth", "Ggl"];
   useEffect(() => {
+    props.refreshUserInfo()
+  }, [submitted, commited, operation, symbol, amount, point, stockPrice]);
+
+  useEffect(() => {
     //get a qoute for the price
     getQuote(symbol);
     //   getQuoteService(props.username, symbol);
