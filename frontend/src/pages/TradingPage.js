@@ -60,7 +60,7 @@ function TradingPage(props) {
         <div className={styles.panel}>
           <CollapsibleList
             type={"Pending Transactions"}
-            list={reservedBuy.join(reservedSell)}
+            list={reservedBuy}
           ></CollapsibleList>
           <CollapsibleList
             type={"Current Holdings"}

@@ -9,7 +9,7 @@ const apiSellUrl = "http://127.0.0.1/sell/";
 
 const TradingPanel = (props) => {
   const [operation, setOperation] = useState("Buy");
-  const [symbol, setSymbol] = useState("");
+  const [symbol, setSymbol] = useState("App");
   const [amount, setAmount] = useState(0);
   const [point, setPoint] = useState(0);
   const [stockPrice, setStockPrice] = useState(0);
@@ -56,22 +56,25 @@ const TradingPanel = (props) => {
           console.log(response)
         }else{
           //this is a setBuy operation
-          // const payloadAmount = {
-          //   cmd: operation,
-          //   username: props.username,
-          //   sym: symbol,
-          //   amount: amount,
-          //   trxNum: 1,
-          // }
-          // const payloadTrigger = {
-          //   cmd: operation,
-          //   username: props.username,
-          //   sym: symbol,
-          //   amount: stockPrice,
-          //   trxNum: 1,
-          // }
-          // const setBuyAmountResponse = await axios.post(apiBuyUrl + "set_buy_amount", payloadAmount);
-          // const setBuyTriggerResponse = await axios.post(apiBuyUrl + "set_buy_trigger", payloadTrigger);
+          setSubmitted(true);
+          const payloadAmount = {
+            cmd: 'SET_BUY_AMOUNT',
+            username: props.username,
+            sym: symbol,
+            amount: amount,
+            trxNum: 1,
+          }
+          const payloadTrigger = {
+            cmd: 'SET_BUY_TRIGGER',
+            username: props.username,
+            sym: symbol,
+            amount: stockPrice,
+            trxNum: 1,
+          }
+          const setBuyAmountResponse = await axios.post(apiBuyUrl + "set_buy_amount", payloadAmount);
+          const setBuyTriggerResponse = await axios.post(apiBuyUrl + "set_buy_trigger", payloadTrigger);
+
+          console.log(setBuyAmountResponse, setBuyTriggerResponse)
         }
       }else{
         //not enough funds to buy this amount!
@@ -138,7 +141,7 @@ const TradingPanel = (props) => {
         {point === stockPrice ? (
           <button onClick={() => submitOperation()}>{operation}</button>
         ) : (
-          <button>Set {operation}</button>
+          <button onClick={() => submitOperation()}>Set {operation}</button>
         )}
       </div>
     );
