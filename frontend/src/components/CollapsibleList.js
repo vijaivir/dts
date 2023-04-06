@@ -24,6 +24,7 @@ const CollapsibleList = (props) => {
       "http://localhost/buy/cancel_set_buy",
       payload
     );
+    props.refreshUserInfo()
   };
 
   return (
