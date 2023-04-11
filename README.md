@@ -2,13 +2,13 @@
 
 The DTS application allows users to perform various trading transactions such as adding funds, buying stocks, selling stocks, setting automated buy and sell points, and viewing a summary of their transactions. 
 
-To test the application using demo scripts, run:
+To start the application run:
 
 ```
 docker compose up
 ```
 
-Open another terminal and run:
+To test the functionality using user scripts, open another terminal and run:
 
 ```
 cd backend
@@ -17,16 +17,11 @@ python3 input.py ./commands/user1.txt
 
 Additional user scripts have been included that simulates the application beign run by 1-10,000 users. 
 
-To navigate the application using the frontend, run:
-
-```
-docker compose up
-```
-
-Open another terminal and run:
+To navigate the application using the frontend, open another terminal and run:
 
 ```
 cd frontend
+npm install
 npm start
 ```
 
@@ -81,10 +76,38 @@ All the information about the system is stored using MongoDB hosted in a docker 
 
 ### Cache
 
-
+A Redis cache is used to improve response times by caching frequently accessed stock prices. When a microservice requests a quote price it first checks the Redis cache for the stock symbol, if it exists in the cache it is immediately returned to the microservice. If a stock symbol does not exist in the Redis cache, a quote request is sent to the Flask quote server and that symbol is cached with an expiry time of 120 seconds.
 
 ### NGINX Load Balancer
 
+The DTS utilizes an NGINX load balancer that listens on port 80 and redirects requests as appropriate based on the url being accessed. NGINX is configured to use an IP Hash distribution algorithm so that the load is distributed evenly based on the IP address. 
+
 ### Microservices
 
+The application is divided into three Python Flask microservices: buy, sell, and user utilities.
+
+The buy microservice handles all buy related functionalities and supports the following commands:
+- BUY
+- COMMIT BUY
+- CANCEL BUY
+- SET BUY AMOUNT
+- SET BUY TRIGGER
+- CANCEL SET BUY
+
+The sell microservice handles all sell related functionalities and supports the following commands:
+- SELL
+- COMMIT SELL
+- CANCEL SELL
+- SET SELL AMOUNT
+- SET SELL TRIGGER
+- CANCEL SET SELL
+
+The user utilities microservice handles all functions related to a user’s account and some helper functions:
+- QUOTE
+- RECENT TRANSACTIONS
+- DUMPLOG
+- DISPLAY SUMMARY
+
 ### Quote Server
+
+The DTS implements a custom quote server that accepts a stock symbol and returns a randomly generated stock price and a cryptokey. The quote server is hosted in a docker container and created using the Python Flask web framework similar to the microservices. 
