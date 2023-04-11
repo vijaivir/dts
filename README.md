@@ -30,4 +30,16 @@ cd frontend
 npm start
 ```
 
-## 1.0 Components
+## Components
+
+### Frontend
+
+### Database
+
+### Cache
+
+### NGINX Load Balancer
+
+### Microservices
+
+### Quote Server
