@@ -34,11 +34,11 @@ The UI is designed using React for simple state management. The UI is updated wh
 
 *Login Page*
 
-![Buy](https://user-images.githubusercontent.com/91633223/231276924-f3ce7d1a-1dbc-4fe1-8cfb-c68e9177151a.png)
+![Buy](https://user-images.githubusercontent.com/91633223/231292398-4b65d20d-2376-48e2-9b9e-147394fd8c5d.png)
 
 *Buy View*
 
-![Sell](https://user-images.githubusercontent.com/91633223/231277029-34ee94a2-c043-4aaf-9244-358b6b5b7cf8.png)
+![Sell](https://user-images.githubusercontent.com/91633223/231292425-c4d91479-1dae-42fe-bd4a-1e694fa02266.png)
 
 *Sell View*
 
