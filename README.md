@@ -17,16 +17,11 @@ python3 input.py ./commands/user1.txt
 
 Additional user scripts have been included that simulates the application beign run by 1-10,000 users. 
 
-To navigate the application using the frontend, run:
-
-```
-docker compose up
-```
-
-Open another terminal and run:
+To navigate the application using the frontend, open another terminal and run:
 
 ```
 cd frontend
+npm install
 npm start
 ```
 
