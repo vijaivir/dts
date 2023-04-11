@@ -5,22 +5,27 @@ import time
 apiUrl = "http://127.0.0.1"
 sell = '/sell'
 buy = '/buy'
+user = '/user_utils'
 
 all_requests = []
+
+print_flag = 1
 
 def createCommand(line, count):
     c = line.split(',')
     trxNum = count
     cmd = c[0].split(" ")[1]
 
-    print(cmd, trxNum)
+    if print_flag:
+        print(cmd, trxNum)
+    
     c[1] = c[1].strip()
     # TODO need a separate quote server count
     if(cmd == "QUOTE"):
-        all_requests.append(requests.post(apiUrl + buy + "/quote", json={'cmd':cmd, 'username':c[1], 'sym':c[2]}))
+        all_requests.append(requests.post(apiUrl + user + "/quote", json={'cmd':cmd, 'username':c[1], 'sym':c[2]}))
 
     elif(cmd == "ADD"):
-        all_requests.append(requests.post(apiUrl + buy + "/add", json={'cmd':cmd, 'username':c[1], 'amount':float(c[2]), 'trxNum':trxNum}))
+        all_requests.append(requests.post(apiUrl + user + "/add", json={'cmd':cmd, 'username':c[1], 'amount':float(c[2]), 'trxNum':trxNum}))
 
     elif(cmd == "BUY"):
         all_requests.append(requests.post(apiUrl + buy + "/buy", json={'cmd':cmd, 'username':c[1], 'sym':c[2] , 'amount':float(c[3]), 'trxNum':trxNum}))
@@ -60,12 +65,12 @@ def createCommand(line, count):
 
     elif(cmd == "DUMPLOG"):
         if len(c) == 2:
-            all_requests.append(requests.post(apiUrl + sell + "/dumplog", json={'filename':c[1]}))
+            all_requests.append(requests.post(apiUrl + user + "/dumplog", json={'filename':c[1]}))
         else:
-            all_requests.append(requests.post(apiUrl + sell + "/dumplog", json={'username':c[1], 'filename':c[2]}))
+            all_requests.append(requests.post(apiUrl + user + "/dumplog", json={'username':c[1], 'filename':c[2]}))
 
     elif(cmd == "DISPLAY_SUMMARY"):
-        all_requests.append(requests.post(apiUrl + sell + "/display_summary", json={'username':c[1],'trxNum':trxNum}))
+        all_requests.append(requests.post(apiUrl + user + "/display_summary", json={'username':c[1],'trxNum':trxNum}))
 
 
 def sendrequests():
@@ -84,6 +89,9 @@ def readInputFile(fileName):
 
 if __name__ =="__main__":
     fileName = sys.argv[1]
+    if len(sys.argv) > 2:
+        print_flag = int(sys.argv[2])
+
     readInputFile(fileName)
     # all_requests = set(all_requests)
     # sendrequests()
