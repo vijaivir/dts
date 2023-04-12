@@ -12,7 +12,7 @@ To test the functionality using user scripts, open another terminal and run:
 
 ```
 cd backend
-python3 input.py ./commands/user1.txt
+python3 input_script.py ./commands/user1.txt
 ```
 
 Additional user scripts have been included that simulates the application beign run by 1-10,000 users. 
